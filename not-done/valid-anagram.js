@@ -1,21 +1,35 @@
-// Valid Anagram
-// Given two strings s and t, return true if the two strings are anagrams of each other, otherwise return false.
+// 242. Valid Anagram
+// Solved
+// Easy
+// Topics
+// Companies
+// Given two strings s and t, return true if t is an 
+// anagram
+//  of s, and false otherwise.
 
-// An anagram is a string that contains the exact same characters as another string, but the order of the characters can be different.
+ 
 
 // Example 1:
 
-// Input: s = "racecar", t = "carrace"
+// Input: s = "anagram", t = "nagaram"
 
 // Output: true
+
 // Example 2:
 
-// Input: s = "jar", t = "jam"
+// Input: s = "rat", t = "car"
 
 // Output: false
+
+ 
+
 // Constraints:
 
+// 1 <= s.length, t.length <= 5 * 104
 // s and t consist of lowercase English letters.
+ 
+
+// Follow up: What if the inputs contain Unicode characters? How would you adapt your solution to such a case?
 
 function isAnagram(s, t) {
     if (s.length !== t.length) {
@@ -41,3 +55,21 @@ function isAnagram(s, t) {
 // Example usage:
 console.log(isAnagram("racecar", "carrace")); // Output: true
 console.log(isAnagram("jar", "jam")); // Output: false
+
+
+var isAnagram = function(s, t) {
+    let x = Array.from(s).sort()
+    let y = Array.from(t).sort()
+    return arraysEqual(x,y)
+}
+
+var arraysEqual = function (a, b) {
+    if (a === b) return true;
+    if (a == null || b == null) return false;
+    if (a.length !== b.length) return false;
+  
+    for (var i = 0; i < a.length; ++i) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
+}
