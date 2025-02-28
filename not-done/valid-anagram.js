@@ -73,3 +73,15 @@ var arraysEqual = function (a, b) {
     }
     return true;
 }
+
+
+function isAnagram(s, t) {
+    if (s.length !== t.length) {
+        return false;
+    }
+    return s.split('').sort().join('') === t.split('').sort().join('');
+}
+
+// Example usage:
+console.log(isAnagram("racecar", "carrace")); // Output: true
+console.log(isAnagram("jar", "jam")); // Output: false
