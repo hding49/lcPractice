@@ -1,0 +1,21 @@
+Target 300 - 400 
+
+Two pointer
+Sliding window
+Array / String / Sorting
+Stack / Queue
+Linked list
+Binary tree 
+Binary search
+
+DFS / BFS
+Backtracking 
+Hash map
+Greedy
+Graph / Bit / Heap
+Recursion 
+
+Blind 75
+Neetcode 150
+LC Company Tag Questions
+1point3acres + lc discuss question
