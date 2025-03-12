@@ -25,3 +25,17 @@
 
 // 2 <= height.length <= 1000
 // 0 <= height[i] <= 1000
+
+var maxArea = function (height) {
+    let [left, right, max] = [0, height.length - 1, 0];
+
+    while (left < right) {
+        const [leftHeight, rightHeight] = [height[left], height[right]];
+        max = Math.max(max, Math.min(leftHeight, rightHeight) * (right - left));
+
+        if (leftHeight <= rightHeight) left++;
+        if (rightHeight < leftHeight) right--;
+    }
+
+    return max;
+};
