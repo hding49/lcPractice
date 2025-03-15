@@ -23,3 +23,12 @@
 // 1 <= strs.length <= 1000.
 // 0 <= strs[i].length <= 100
 // strs[i] is made up of lowercase English letters.
+
+var groupAnagrams = function(strs) {
+    let map = {}
+    for(let word of strs){
+        let anagramGroup = word.split('').sort().join('')
+        map[anagramGroup] ?  map[anagramGroup].push(word) :  map[anagramGroup] = [word]
+    }
+    return Object.values(map)
+};

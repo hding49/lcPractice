@@ -1,40 +1,43 @@
-// Top K Frequent Elements
-// Given an integer array nums and an integer k, return the k most frequent elements within the array.
+// 347. Top K Frequent Elements
+// Solved
+// Medium
+// Topics
+// Companies
+// Given an integer array nums and an integer k, return the k most frequent elements. You may return the answer in any order.
 
-// The test cases are generated such that the answer is always unique.
-
-// You may return the output in any order.
+ 
 
 // Example 1:
 
-// Input: nums = [1,2,2,3,3,3], k = 2
-
-// Output: [2,3]
+// Input: nums = [1,1,1,2,2,3], k = 2
+// Output: [1,2]
 // Example 2:
 
-// Input: nums = [7,7], k = 1
+// Input: nums = [1], k = 1
+// Output: [1]
+ 
 
-// Output: [7]
 // Constraints:
 
-// 1 <= nums.length <= 10^4.
-// -1000 <= nums[i] <= 1000
-// 1 <= k <= number of distinct elements in nums.
+// 1 <= nums.length <= 105
+// -104 <= nums[i] <= 104
+// k is in the range [1, the number of unique elements in the array].
+// It is guaranteed that the answer is unique.
+ 
+
+// Follow up: Your algorithm's time complexity must be better than O(n log n), where n is the array's size.
 
 
 function topKFrequent(nums, k) {
-    const frequencyMap = new Map();
-
-    // Count the frequency of each element in the array
-    for (const num of nums) {
-        frequencyMap.set(num, (frequencyMap.get(num) || 0) + 1);
+    let frequencyMap = new Map()
+        
+    for (const num of nums){
+      frequencyMap.set(num, ((frequencyMap.get(num) || 0) + 1))
     }
 
-    // Create an array of the elements sorted by frequency in descending order
-    const sortedElements = [...frequencyMap.entries()].sort((a, b) => b[1] - a[1]);
+    let sortedMap = [...frequencyMap.entries()].sort((a,b)=> b[1] - a[1])
 
-    // Extract the top k elements
-    return sortedElements.slice(0, k).map(entry => entry[0]);
+    return sortedMap.slice(0,k).map(e=>e[0])
 }
 
 // Example usage:

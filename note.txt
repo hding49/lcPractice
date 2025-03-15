@@ -1,19 +1,23 @@
-Target 300 - 400 
+Target 300 - 350
 
 Two pointer
 Sliding window
-Array / String / Sorting
+Sorting
+Array / String
 Stack / Queue
 Linked list
 Binary tree 
 Binary search
 
 DFS / BFS
-Backtracking 
-Hash map
+Backtracking / Recursion 
+Hash map /Hash set
 Greedy
-Graph / Bit / Heap
-Recursion 
+Graph
+Heap
+Bit / Math
+Dynamic Programming
+
 
 Blind 75
 Neetcode 150

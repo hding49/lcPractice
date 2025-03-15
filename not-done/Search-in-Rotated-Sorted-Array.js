@@ -24,3 +24,38 @@
 // 1 <= nums.length <= 1000
 // -1000 <= nums[i] <= 1000
 // -1000 <= target <= 1000
+
+var search = function(nums, target) {
+    let start = 0
+    let end = nums.length - 1
+    while(start <= end){
+       let mid = Math.floor((start + end) / 2)
+
+       if(nums[mid] == target){
+         return mid
+       }
+
+       if(nums[start] < nums[mid]){
+         if(nums[start] <= target && target < nums[mid]){
+            end = mid - 1
+         }
+         else{
+            start = mid + 1
+         }
+       }
+
+       else if(nums[mid] < nums[end]){
+        if(nums[mid] < target && target <= nums[end]){
+            start = mid + 1
+         }
+         else{
+            end = mid - 1
+         }
+       }
+
+       else {
+         start ++
+       }
+    }
+    return -1
+}
