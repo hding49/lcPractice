@@ -35,27 +35,28 @@ var search = function(nums, target) {
          return mid
        }
 
-       if(nums[start] < nums[mid]){
-         if(nums[start] <= target && target < nums[mid]){
-            end = mid - 1
-         }
-         else{
-            start = mid + 1
-         }
-       }
-
-       else if(nums[mid] < nums[end]){
-        if(nums[mid] < target && target <= nums[end]){
-            start = mid + 1
-         }
-         else{
-            end = mid - 1
-         }
-       }
-
-       else {
-         start ++
-       }
+        // 左半部分是有序的
+        if (nums[start] < nums[mid]) {
+            //如果目标值在 start 和 mid 之间，则在左半部分继续查找。否则，在右半部分继续查找。
+            if (nums[start] <= target && target < nums[mid]) {
+                end = mid - 1;
+            } else {
+                start = mid + 1;
+            }
+        }
+        // 右半部分是有序的
+        else if (nums[mid] < nums[end]) {
+            //如果目标值在 mid 和 end 之间，则在右半部分继续查找。否则，在左半部分继续查找
+            if (nums[mid] < target && target <= nums[end]) {
+                start = mid + 1;
+            } else {
+                end = mid - 1;
+            }
+        }
+        // 处理重复元素的情况
+        else {
+            start++;
+        }
     }
     return -1
 }
