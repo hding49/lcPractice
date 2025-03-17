@@ -3,12 +3,7 @@
 
 // Each product is guaranteed to fit in a 32-bit integer.
 
-// Follow-up: Could you solve it in 
-// O
-// (
-// n
-// )
-// O(n) time without using the division operation?
+// Follow-up: Could you solve it in O(n) time without using the division operation?
 
 // Example 1:
 
