@@ -24,16 +24,15 @@
 
 var longestConsecutive = function(nums) {
     if(nums.length === 0) return 0
-    let list = nums.sort((a,b) => a-b)
+    let list = [...new Set(nums)].sort((a, b) => a - b);
     let max = 0, count = 1
 
-    for(let i = 0; i < list.length; i ++){
+    for(let i = 1; i < list.length; i ++){
 
         if(list[i] === list[i-1] + 1){
             count ++
             max = Math.max(max, count)
         }
-        else if(list[i] == list[i-1]) continue  
         else{    
             count = 1
         }
