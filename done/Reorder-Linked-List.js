@@ -32,23 +32,32 @@
 
 
 var reorderList = function(head) {
-    let stack = []
-    let node = head
-    if(!node) return
-    while(node){
-        stack.push(node)
-        node = node.next
+    if (!head || !head.next) return;
+
+    // 1. 使用快慢指针找到链表中点
+    let slow = head, fast = head;
+    while (fast && fast.next) {
+        slow = slow.next;
+        fast = fast.next.next;
     }
-    let len = stack.length
-    node= head
-    for(let i = 0; i < len; i ++){
-        if(i % 2 == 0){
-            node.next = stack.shift()
-        }
-        else{
-            node.next = stack.pop()
-        }
-         node = node.next
+
+    // 2. 反转后半部分链表
+    let prev = null, curr = slow.next;
+    slow.next = null; // 断开前后两部分
+    while (curr) {
+        let temp = curr.next;
+        curr.next = prev;
+        prev = curr;
+        curr = temp;
     }
-    node.next = null
+
+    // 3. 交替合并前后两部分
+    let first = head, second = prev;
+    while (second) {
+        let temp1 = first.next, temp2 = second.next;
+        first.next = second;
+        second.next = temp1;
+        first = temp1;
+        second = temp2;
+    }
 };

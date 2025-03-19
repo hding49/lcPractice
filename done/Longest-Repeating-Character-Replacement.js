@@ -24,29 +24,32 @@
 // Time Complexity :  O(n)
 // Space Complexity : O(1)
 var characterReplacement = function(s, k) {
-    // Initialize an empty Map to store character frequencies.
+    // 初始化一个 Map 用于存储每个字符的频率。
     let map = new Map();
     let largestCount = 0, start = 0, maxlen = 0;
 
+    // 遍历字符串的每个字符，使用滑动窗口算法。
     for (let end = 0; end < s.length; end++) {
         const c = s[end];
 
-        // Increment the frequency of the current character.
+        // 增加当前字符的频率。
         map.set(c, (map.get(c) || 0) + 1);
 
-        // Get the largest count of a single character in the current window.
+        // 更新当前窗口中出现次数最多的字符的频率。
         largestCount = Math.max(largestCount, map.get(c));
 
-        // If the current window size minus the count of the most frequent character is greater than k,
-        // shrink the window.
+        // 如果当前窗口的大小减去最频繁字符的个数大于 k，说明替换的字符太多了。
+        // 需要缩小窗口，减少替换的字符数。
         if (end - start + 1 - largestCount > k) {
+            // 缩小窗口：将窗口的起始位置 `start` 向右移动一位。
             map.set(s[start], map.get(s[start]) - 1);
-            start += 1;
+            start ++;
         }
 
-        // Update the maximum length of the valid window.
+        // 更新最大子串的长度。
         maxlen = Math.max(maxlen, end - start + 1);
     }
 
     return maxlen;
 };
+
