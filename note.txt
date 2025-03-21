@@ -23,3 +23,9 @@ Blind 75
 Neetcode 150
 LC Company Tag Questions
 1point3acres + lc discuss question
+
+System Design -- review alex xu books and then learn SD 面经题
+
+Learn java api development, GraphQL, Redis, Elasticsearch, Github Action CI/CD
+
+Prepare BQ
