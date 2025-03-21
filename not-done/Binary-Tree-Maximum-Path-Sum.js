@@ -35,20 +35,19 @@
      */
 
     function maxPathSum(root) {
-        const res = [root.val];
+        let maxSum = root.val;
 
-        var dfs = (root, res) => {
-            if (root === null) {
-                return 0;
-            }
+        function dfs(node) {
+            if (node === null) return 0;
     
-            const leftMax = Math.max(this.dfs(root.left, res), 0);
-            const rightMax = Math.max(this.dfs(root.right, res), 0);
+            const leftMax = Math.max(dfs(node.left), 0);
+            const rightMax = Math.max(dfs(node.right), 0);
     
-            res[0] = Math.max(res[0], root.val + leftMax + rightMax);
-            return root.val + Math.max(leftMax, rightMax);
+            maxSum = Math.max(maxSum, node.val + leftMax + rightMax);
+    
+            return node.val + Math.max(leftMax, rightMax);
         }
-        
-        this.dfs(root, res);
-        return res[0];
+    
+        dfs(root);
+        return maxSum;
     }
