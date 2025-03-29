@@ -27,3 +27,40 @@
 
 // 1 <= heights.length, heights[r].length <= 100
 // 0 <= heights[r][c] <= 1000
+
+var pacificAtlantic = function(M) {
+    if (!M.length) return M;  // 处理空输入
+    let y = M.length,  // 行数
+        x = M[0].length,  // 列数
+        ans = [],  // 结果数组
+        dp = new Uint8Array(x * y);  // 一维数组标记访问情况
+
+    // DFS 递归函数
+    const dfs = (i, j, w, h) => {
+        let ij = i * x + j;  // 将 (i, j) 映射到一维数组索引
+        if ((dp[ij] & w) || M[i][j] < h) return;  // 如果已访问或高度不符合，返回
+        dp[ij] += w;  // 记录该点可以流向的海洋（1=太平洋，2=大西洋）
+        h = M[i][j];  // 更新当前高度
+        if (dp[ij] === 3) ans.push([i, j]);  // 如果该点能流向两个大洋，加入结果集
+
+        // 递归搜索四个方向
+        if (i + 1 < y) dfs(i + 1, j, w, h);  // 向下
+        if (i > 0) dfs(i - 1, j, w, h);  // 向上
+        if (j + 1 < x) dfs(i, j + 1, w, h);  // 向右
+        if (j > 0) dfs(i, j - 1, w, h);  // 向左
+    };
+
+    // **从太平洋的边界开始 DFS**
+    for (let i = 0; i < y; i++) {
+        dfs(i, 0, 1, M[i][0]);  // 左边界
+        dfs(i, x - 1, 2, M[i][x - 1]);  // 右边界
+    }
+
+    // **从大西洋的边界开始 DFS**
+    for (let j = 0; j < x; j++) {
+        dfs(0, j, 1, M[0][j]);  // 上边界
+        dfs(y - 1, j, 2, M[y - 1][j]);  // 下边界
+    }
+
+    return ans;  // 返回能流向两个大洋的点
+};

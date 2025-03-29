@@ -26,3 +26,41 @@
 // 1 <= numCourses <= 1000
 // 0 <= prerequisites.length <= 1000
 // All prerequisite pairs are unique.
+
+/**
+ * @param {number} numCourses
+ * @param {number[][]} prerequisites
+ * @return {boolean}
+ */
+var canFinish = function (numCourses, prerequisites) {
+    let preMap = {}, visited = {};
+ 
+    for(let i = 0; i < numCourses; i++){
+      preMap[i] = []
+    }
+ 
+    for(let i = 0; i < prerequisites.length; i++){
+     preMap[prerequisites[i][0]].push(prerequisites[i][1]);
+    }
+ 
+    var dfs = (node) => {
+     if(visited[node]) return false
+     if(preMap[node].length === 0) return true
+ 
+     visited[node] = true
+ 
+     for(let val of preMap[node]){
+       if(!dfs(val)) return false
+     }
+ 
+     visited[node] = false
+ 
+     preMap[node] = []
+     return true
+    }
+ 
+   for(let i = 0; i < numCourses; i++){
+     if(!dfs(i)) return false
+   }
+   return true
+ };
