@@ -1,0 +1,67 @@
+lc coding
+
+744
+1249
+314
+934
+270
+480
+173
+65
+127
+17
+227
+398
+162
+973
+1539
+1351
+378
+766
+56
+863
+236
+Palindromic Subsequences
+LRU
+nested-list-weight-sum-ii
+408
+791
+347
+91
+163
+
+
+50. Pow(x, n)
+295. Find Median from Data Stream
+199. Binary Tree Right Side View
+324. Wiggle Sort II 127. Word Ladder
+938. Range Sum of BST
+215. Kth Largest Element in an Array
+680. Valid Palindrome II
+1539. Kth Missing Positive Number
+207. Course Schedule
+227. Basic Calculator II
+973. K Closest Points to Origin
+525. Contiguous Array
+426. Convert Binary Search Tree to Sorted Doubly Linked List
+658. Find K Closest Elements
+162. Find Peak Element
+1249. Minimum Remove to Make Valid Parentheses
+347. Top K Frequent Elements
+987. Vertical Order Traversal of a Binary Tree
+721. Accounts Merge
+1209. Remove All Adjacent Duplicates in String II
+
+SD
+
+ads aggregator + indexing
+SD是设计爬虫，比较刁钻，问的问题都不常被问到，诸如不可以互相通信等。
+leetcode
+ad click aggregator 
+设计一个客户端的网络资源下载器，应该是挂的最直接的轮，追问了许多网络细节都属于楼主知识盲区，总体感觉应该是类似于设计浏览器那样设计。
+作为某黑壳去爬网站，和我准备的不太一样，因为不让存blob里，只让用自己电脑存，我有点懵，high level design画了，前面的都答了，但最后这个问题没给出他想要的答案 作为一个两年经验的小白真的尽力了
+
+BQ
+
+BQ问的问题比较常规，与人冲突如何解决？在中间会问如何说服他人等等
+怎么处理组员或不同组的conflicts，怎么take 别人或上级的feedback，还有work outside 熟悉领域的例子。
