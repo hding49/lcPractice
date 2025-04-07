@@ -1,4 +1,4 @@
-Target 300 - 350
+Target 200-300
 
 Two pointer
 Sliding window
@@ -20,12 +20,13 @@ Dynamic Programming
 
 
 Blind 75
-Neetcode 150
 LC Company Tag Questions
 1point3acres + lc discuss question
 
 System Design -- review alex xu books and then learn SD 面经题
 
 Learn java api development, GraphQL, Redis, Elasticsearch, Github Action CI/CD
+
+Review React, JavaScript, MySQL, python fastAPI interview knowledge points
 
 Prepare BQ
