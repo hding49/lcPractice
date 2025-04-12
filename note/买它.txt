@@ -1,56 +1,55 @@
 lc coding
 
-744
-1249
-314
-934
-270
-480
-173
-65
-127
-17
-227
-398
-162
-973
-1539
-1351
-378
-766
-56
-863
-236
-Palindromic Subsequences
-LRU
-nested-list-weight-sum-ii
-408
-791
-347
-91
-163
+17 - Letter Combinations of a Phone Number  
+50 - Pow(x, n)  
+56 - Merge Intervals  
+65 - Valid Number  
+91 - Decode Ways  
+127 - Word Ladder  
+146 - LRU Cache  
+162 - Find Peak Element  
+163 - Missing Ranges  
+173 - Binary Search Tree Iterator  
+199 - Binary Tree Right Side View  
+207 - Course Schedule  
+215 - Kth Largest Element in an Array  
+227 - Basic Calculator II  
+236 - Lowest Common Ancestor of a Binary Tree  
+270 - Closest Binary Search Tree Value  
+295 - Find Median from Data Stream  
+314 - Binary Tree Vertical Order Traversal  
+324 - Wiggle Sort II  
+339 - Nested List Weight Sum  
+364 - Nested List Weight Sum II  
+378 - Kth Smallest Element in a Sorted Matrix  
+398 - Random Pick Index  
+408 - Valid Word Abbreviation  
+426 - Convert Binary Search Tree to Sorted Doubly Linked List  
+480 - Sliding Window Median  
+525 - Contiguous Array  
+543 - Diameter of Binary Tree  
+647 - Palindromic Substrings  
+658 - Find K Closest Elements  
+680 - Valid Palindrome II  
+708 - Insert into a Sorted Circular Linked List  
+721 - Accounts Merge  
+744 - Find Smallest Letter Greater Than Target  
+766 - Toeplitz Matrix  
+791 - Custom Sort String  
+863 - All Nodes Distance K in Binary Tree  
+873 - Length of Longest Fibonacci Subsequence 
+908 - Smallest Range I 
+934 - Shortest Bridge  
+938 - Range Sum of BST  
+973 - K Closest Points to Origin  
+983 - Minimum Cost For Tickets
+987 - Vertical Order Traversal of a Binary Tree  
+1209 - Remove All Adjacent Duplicates in String II  
+1249 - Minimum Remove to Make Valid Parentheses  
+1351 - Count Negative Numbers in a Sorted Matrix  
+1539 - Kth Missing Positive Number  
 
 
-50. Pow(x, n)
-295. Find Median from Data Stream
-199. Binary Tree Right Side View
-324. Wiggle Sort II 127. Word Ladder
-938. Range Sum of BST
-215. Kth Largest Element in an Array
-680. Valid Palindrome II
-1539. Kth Missing Positive Number
-207. Course Schedule
-227. Basic Calculator II
-973. K Closest Points to Origin
-525. Contiguous Array
-426. Convert Binary Search Tree to Sorted Doubly Linked List
-658. Find K Closest Elements
-162. Find Peak Element
-1249. Minimum Remove to Make Valid Parentheses
-347. Top K Frequent Elements
-987. Vertical Order Traversal of a Binary Tree
-721. Accounts Merge
-1209. Remove All Adjacent Duplicates in String II
 
 SD
 
@@ -60,6 +59,7 @@ leetcode
 ad click aggregator 
 设计一个客户端的网络资源下载器，应该是挂的最直接的轮，追问了许多网络细节都属于楼主知识盲区，总体感觉应该是类似于设计浏览器那样设计。
 作为某黑壳去爬网站，和我准备的不太一样，因为不让存blob里，只让用自己电脑存，我有点懵，high level design画了，前面的都答了，但最后这个问题没给出他想要的答案 作为一个两年经验的小白真的尽力了
+邮件系统 + smtp 收发邮件流程
 
 BQ
 
