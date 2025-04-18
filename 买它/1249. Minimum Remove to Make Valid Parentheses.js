@@ -35,27 +35,31 @@
 // 1 <= s.length <= 105
 // s[i] is either '(' , ')', or lowercase English letter.
 
-const minRemoveToMakeValid = (str)=> {
-    const stack = [];
- const splitted_str = str.split("");
- for (let i = 0; i < str.length; i++) {
-   const char = str[i];
-   if (char === "(") stack.push(i); // if curr char is (  then we will push into our stack
-   else if (char === ")") {
-     if (stack.length === 0) {
-         // if out stack is empty then we will make ) as ''
-       splitted_str[i] = "";
-     } else {
-         //! if stack is not empty then we will pop top of the stack
-       stack.pop();
-     }
-   }
- }
-   // if we have extra ( bracket we will remove it by making it as ''
- for (let i = 0; i < stack.length; i++) {
-   const char = stack[i];
-   splitted_str[char] = "";
- }
+const minRemoveToMakeValid = (str) => {
+  const stack = []; // 用来存储左括号的索引
+  const splitted_str = str.split(""); // 拆成数组，方便修改字符
 
- return splitted_str.join(""); // at last we will join the splitted_str
+  // 第一次遍历，处理多余的右括号
+  for (let i = 0; i < str.length; i++) {
+      const char = str[i];
+      if (char === "(") {
+          stack.push(i); // 左括号位置入栈
+      } else if (char === ")") {
+          if (stack.length === 0) {
+              // 没有配对的左括号，删除当前的右括号
+              splitted_str[i] = "";
+          } else {
+              stack.pop(); // 找到一对括号，匹配掉
+          }
+      }
+  }
+
+  // 第二次遍历，处理多余的左括号
+  for (let i = 0; i < stack.length; i++) {
+      const index = stack[i];
+      splitted_str[index] = ""; // 删除多余的左括号
+  }
+
+  // 拼接成最终字符串
+  return splitted_str.join("");
 };
