@@ -39,23 +39,24 @@
 // 1 <= k <= 231 - 1
 
 
-var checkSubarraySum = function (nums, k) {
+var checkSubarraySum = function(nums, k) {
+    let currMod = 0;
+    let hash = new Set()
+    let sum = 0
+    let prevMod = 0;
 
-	let sum = 0
-	
-	let prefix = 0;
-	
-	const hash = new Set();
-	
-	for (let i = 0; i < nums.length; i++) {
-		sum += nums[i]
+    for(let i = 0; i < nums.length; i++){
+       sum+=nums[i]
 
-		if (k != 0) sum %= k
+       if(k != 0) currMod = sum % k;
 
-		if(hash.has(sum)) return true
+       if(hash.has(currMod)) return true;
 
-		hash.add(prefix);
-		prefix = sum;
-	}
-	return false
+       hash.add(prevMod)
+       prevMod = currMod;
+    }
+
+    return false;
 };
+  
+  

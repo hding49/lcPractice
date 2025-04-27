@@ -33,17 +33,24 @@
  * @param {number} k
  * @return {number}
  */
-var longestOnes = function (nums, k) {
-    let i = 0, j = 0;
-    while (j < nums.length) {
-        if (nums[j++] === 0) {
-            k--;
+var longestOnes = function(nums, k) {
+    let i = 0;
+    let maxLen = 0;
+  
+    for (let j = 0; j < nums.length; j++) {
+      if (nums[j] === 0) {
+        k--;
+      }
+  
+      while (k < 0) {
+        if (nums[i] === 0) {
+          k++;
         }
-        if (k < 0) {
-            if (nums[i++] === 0) {
-                k++;
-            }
-        }
+        i++;
+      }
+  
+      maxLen = Math.max(maxLen, j - i + 1);
     }
-    return j - i;
-};
+  
+    return maxLen;
+  };

@@ -38,15 +38,23 @@
  * @param {string[]} strs
  * @return {string[][]}
  */
-const groupStrings = strs => {
-    const res = {};
-    strs.forEach(s => {
-        const key = new Array(s.length).fill(0);
-        for (let i = 1; i < s.length; i++) {
-            key[i] = s.charCodeAt(i-1) - (s.charCodeAt(i) + 26);
-            if (key[i] > 25 || key[i] < -25) key[i] %= 26;
+const groupStrings = (strs) => {
+    const map = new Map();
+
+    for (const str of strs) {
+        // 构建当前字符串的“相对间距”key
+        let key = '';
+
+        for (let i = 1; i < str.length; i++) {
+            // 计算相对差值，注意用 +26 后再 % 26 防止负值
+            const diff = (str.charCodeAt(i) - str.charCodeAt(i - 1) + 26) % 26;
+            key += diff + ','; // 用逗号连接避免 ["11"] 和 ["1","1"] 混淆
         }
-        res[key] ? res[key].push(s) : res[key] = [s];
-    })
-    return Object.values(res);
+
+        // 如果是单个字符，key 就是空字符串 ''
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(str);
+    }
+
+    return Array.from(map.values());
 };
