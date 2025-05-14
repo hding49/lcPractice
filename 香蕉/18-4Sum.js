@@ -36,7 +36,7 @@
 var fourSum = function(nums, target) {
     const result = [];
 
-    if (nums == null || nums.length < 4) {
+    if (!nums || nums.length < 4) {
         return result;
     }
 
