@@ -33,6 +33,9 @@ var subarraySum = function(nums, k) {
     for (const n of nums) {
         total += n;
 
+        //当前的前缀和 total[j] 减去一个旧的前缀和 total[i - 1]，如果结果为 k，那就找到一个子数组了。
+        //如果total - k存在的话 那么从i到当前位置就是和为k的子数组
+        //total[i - 1] = total[j] - k
         if (subNum[total - k] !== undefined) {
             count += subNum[total - k];
         }

@@ -37,12 +37,23 @@ var largest1BorderedSquare = function(grid) {
       }
     }
     
+    //整个grid是从左上方为原点开始的 不是普通的坐标系 往下是i增加 往右是j增加
+    //left[i][j] 表示在位置 (i, j) 往左边（水平方向）看，连续的 1 的数量
+    //top[i][j] 表示在位置 (i, j) 往上边（垂直方向）看，连续的 1 的数量
+    // grid = [
+    //   [1, 1, 0],
+    //   [1, 1, 1],
+    //   [0, 1, 1]
+    // ]
     let ans = 0;
     for (let i = 0; i < m; i++) {
       for (let j = 0; j < n; j++) {
+        //在右边和下边取一个连续的最小k
         let size = Math.min(top[i][j], left[i][j]);
         for (let k = size; k > 0; k--) {
+          //判断左边是否有k个
           let bottomLeftTop = top[i][j - k + 1];
+          //判断上边是否有k个
           let topRightLeft = left[i - k + 1][j];
           if (bottomLeftTop >= k && topRightLeft >= k) {
             ans = Math.max(ans, k * k);
