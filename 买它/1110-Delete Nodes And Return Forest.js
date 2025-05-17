@@ -28,39 +28,32 @@
 // to_delete.length <= 1000
 // to_delete contains distinct values between 1 and 1000.
 
+// to_delete 是一个数组，表示要删除的节点值列表。我们用 Set 主要是为了：
+
+// 快速判断某个节点值是否需要删除，即用 toDeleteSet.has(node.val) 判断，时间复杂度是 O(1)。
+
+// 代码里会多次判断某个节点值是否在删除列表中，用 Set 效率远高于数组的 includes（后者是 O(n)）。
+
 
 var delNodes = function(root, to_delete) {
-    let res = {};
-    let to_delete_set = new Set(to_delete);
-    res[root.val] = root;
+    const toDeleteSet = new Set(to_delete);
+    const res = [];
 
-    function recursion(parent, cur_node, isleft) {
-        if (cur_node === null) return;
+    function helper(node, isRoot) {
+        if (!node) return null;
 
-        recursion(cur_node, cur_node.left, true);
-        recursion(cur_node, cur_node.right, false);
-
-        if (to_delete_set.has(cur_node.val)) {
-            delete res[cur_node.val];
-
-            if (parent !== null) {
-                if (isleft) {
-                    parent.left = null;
-                } else {
-                    parent.right = null;
-                }
-            }
-
-            if (cur_node.left !== null) {
-                res[cur_node.left.val] = cur_node.left;
-            }
-            if (cur_node.right !== null) {
-                res[cur_node.right.val] = cur_node.right;
-            }
+        const deleted = toDeleteSet.has(node.val);
+        if (isRoot && !deleted) {
+            res.push(node);
         }
+
+        ///是用来更新当前节点的子树结构的 —— 确保被删除的子节点从树中断开，没被删除的子树结构被保留下来。
+        node.left = helper(node.left, deleted);
+        node.right = helper(node.right, deleted);
+
+        return deleted ? null : node;
     }
 
-    recursion(null, root, false);
-
-    return Object.values(res);
+    helper(root, true);
+    return res;
 };
