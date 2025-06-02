@@ -1,0 +1,83 @@
+高频系统设计题（按重要性排序 + 分类标签）
+
+Top 1–10（核心题）
+
+Design a URL Shortener – Unique ID generation, redirection (内容分发与存储系统)
+
+Design Twitter – Posting, feed, follower/following (社交媒体与信息流)
+
+Design a Video Streaming Platform (e.g., YouTube) – Media storage, CDN (内容分发与存储系统)
+
+Design an Online File Storage System (e.g., Google Drive, Dropbox) – Versioning, sync (内容分发与存储系统)
+
+Design Instagram – Media storage, Feed, Caching (社交媒体与信息流)
+
+Design a Real-time Chat System (e.g., WhatsApp, Messenger) – WebSocket, persistence (社交媒体与信息流)
+
+Design a Message Queue System (Kafka, RabbitMQ) – Producer/consumer, durability (调度与队列系统)
+
+Design API Rate Limiter – Token Bucket, Redis (限流与安全)
+
+Design Notification System – Pub/Sub, deduplication, retry (社交媒体与信息流)
+
+Design a Distributed Cache System – Redis, LRU, consistency (缓存与一致性系统)
+
+Top 11–20（大厂常见题）
+
+Design a Job Scheduler – Cron replacement, job queue (调度与队列系统)
+
+Design LeetCode / Online Judge System – Code execution, sandboxing (内容分发与存储系统)
+
+Design Ticketmaster System – High concurrency, atomic booking (电商与交易系统)
+
+Design an E-commerce Order Management System – Inventory, payment (电商与交易系统)
+
+Design Dropbox Sync / File Synchronization System – Conflict resolution, delta sync (内容分发与存储系统)
+
+Design Rate Limiter – Sliding window counter, in-memory bucket (限流与安全)
+
+Design a Web Crawler – URL deduplication, queueing (缓存与一致性系统)
+
+Design a Scalable Auth System – OAuth2, JWT, sessions (限流与安全)
+
+Design Feed Pagination and Sorting System – Ranking, time-based window (社交媒体与信息流)
+
+Design a Logging System – Log aggregation, search (缓存与一致性系统)
+
+Top 21–27（进阶加分项）
+
+Design a Metrics Monitoring System (e.g., Prometheus) – TSDB, alerting (缓存与一致性系统)
+
+Design an Autocomplete System – Trie, top-k, ranking (搜索与推荐系统)
+
+Design a Recommendation System – Collaborative filtering, ranking (搜索与推荐系统)
+
+Design a Simplified Search Engine – Crawl, index, ranking (搜索与推荐系统)
+
+Design Ad Aggregation System – Batching, delayed data handling (电商与交易系统)
+
+Design a Distributed Lock System – Redis/Zookeeper, fencing token (限流与安全)
+
+Design Notification Retry System – Retry with exponential backoff, DLQ (调度与队列系统)
+
+
+
+
+System Design 准备策略
+
+掌握系统设计基本框架（第一周重点）
+用这 6 个步骤应对几乎所有 system design 面试题：
+
+Clarify the Requirements：功能范围、用户量、流量
+
+Define High-Level Architecture：客户端、API 层、服务层、数据库
+
+Identify Bottlenecks：高并发、延迟、扩展性、数据一致性
+
+Deep Dive into Components：缓存（Redis）、队列（Kafka）、存储（SQL/NoSQL）
+
+Scalability / Reliability / Availability
+
+Trade-offs & Justifications：CAP、写一致性 vs 读延迟 等取舍
+
+
