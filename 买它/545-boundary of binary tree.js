@@ -49,31 +49,71 @@
 // -1000 <= Node.val <= 1000
 
 
-function boundaryOfBinaryTree(root) {
-    const boundary = [root.val];
+/**
+ * Definition for a binary tree node.
+ * function TreeNode(val, left, right) {
+ *     this.val = (val===undefined ? 0 : val)
+ *     this.left = (left===undefined ? null : left)
+ *     this.right = (right===undefined ? null : right)
+ * }
+ */
+/**
+ * @param {TreeNode} root
+ * @return {number[]}
+ */
+
+
+// 绕树一圈”其实就是逆时针地把二叉树的最边上的节点收集起来，分三部分：
+
+// 根和左边一路到底（不包括叶子）
+
+// 把所有叶子节点从左到右扫一遍
+
+// 再从右边最底部一路往回上来（不包括叶子），逆序插入
+
+var boundaryOfBinaryTree = function(root) {
+
+    var dfsLeft = (node, boundary) => {
+       if(!node.left && !node.right) return;
+
+       boundary.push(node.val);
+
+       if (node.left) dfsLeft(node.left, boundary);
+
+       else if (node.right) dfsLeft(node.right, boundary);
+
+    }
+
+    var dfsRight = (node, boundary) => {
+       if(!node.left && !node.right) return;
+
+       if (node.right) dfsRight(node.right, boundary);
+
+       else if (node.left) dfsRight(node.left, boundary);
+
+       boundary.push(node.val);
+    }
+
+    var dfsLeaf = (node, boundary) => {
+
+        if(!node.left && !node.right){
+            return boundary.push(node.val);
+        }
+
+       node.left && dfsLeaf(node.left, boundary);
+
+       node.right && dfsLeaf(node.right, boundary);
+        
+    }
+
+    let boundary = [root.val]
+
     root.left && dfsLeft(root.left, boundary);
-    (root.left ?? root.right) && dfsLeaves(root, boundary);
+
+    (root.left ?? root.right ) && dfsLeaf(root, boundary);
+
     root.right && dfsRight(root.right, boundary);
+
     return boundary;
-}
-
-function dfsLeft(root, boundary) {
-  if (!root.left && !root.right) return;
-  boundary.push(root.val);
-  if (root.left) dfsLeft(root.left, boundary);
-  else if (root.right) dfsLeft(root.right, boundary);
-}
-
-function dfsLeaves(root, boundary) {
-  if (!root.left && !root.right)
-    return boundary.push(root.val);
-  root.left && dfsLeaves(root.left, boundary);
-  root.right && dfsLeaves(root.right, boundary);
-}
-
-function dfsRight(root, boundary) {
-  if (!root.left && !root.right) return;
-  if (root.right) dfsRight(root.right, boundary);
-  else if (root.left) dfsRight(root.left, boundary);
-  boundary.push(root.val);
-}
+    
+};
