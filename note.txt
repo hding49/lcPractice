@@ -30,32 +30,3 @@ Learn java api development, GraphQL, Redis, Elasticsearch, Github Action CI/CD
 Review React, JavaScript, MySQL, python fastAPI interview knowledge points
 
 Prepare BQ
-
-
-
-经典模板（用于查找一个特定目标）
-
-function binarySearch(nums, target) {
-    let left = 0, right = nums.length - 1;
-
-    while (left <= right) { // 注意：`<=` 保证能检查中间那个值
-        let mid = Math.floor((left + right) / 2);
-        
-        if (nums[mid] === target) {
-            return mid; // 找到了
-        } else if (nums[mid] < target) {
-            left = mid + 1; // 往右半边搜
-        } else {
-            right = mid - 1; // 往左半边搜
-        }
-    }
-
-    return -1; // 没找到
-}
-
-二分查找的时间复杂度核心逻辑是“每轮减半”，所以基础时间复杂度是 O(log n)
-
-binary search中为什么有的时候用while (left <= right) 有的时候用while (left < right)
-
-while (left <= right)	精确查找目标（e.g. 查找一个数）	标准 binary search 找某个 target
-while (left < right)	查找某个边界（lower/upper bound）	比如找第一个/最后一个满足条件的位置

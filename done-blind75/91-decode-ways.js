@@ -42,7 +42,7 @@ var numDecodings = function(s) {
     dp[0] = 1;
     dp[1] = 1;
 
-    for (let i = 2; i <= n; ++i) {
+    for (let i = 2; i <= n; i++) {
         const oneDigit = parseInt(s[i - 1]);
         const twoDigits = parseInt(s.substring(i - 2, i));
 
