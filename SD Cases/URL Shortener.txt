@@ -1,0 +1,142 @@
+设计 URL Shortener 面试讲稿
+1. 需求明确（Requirement Clarification）
+“We are designing a URL shortening service like Bit.ly. The core requirements are:”
+
+Shorten a long URL into a short one, like short.ly/abc123
+
+Redirection from short URL to original long URL
+
+System should be highly available, scalable, and handle read-heavy traffic
+
+Optional: custom alias, URL expiration, click tracking
+
+2. 高层设计（High-Level Design）
+At a high level, the system has three major components:
+
+ID Generation Service – 生成短码
+
+Redirection Service – 查询短码并做跳转
+
+Storage Layer – 存储短码与长链的映射关系
+
+(Optional) Cache + CDN for performance
+
+less
+Copy
+Edit
+Client
+  |
+  v
+[Load Balancer]
+  |
+  +--> [API Server]
+           |
+           +--> [ID Generator]  →  [Storage DB]
+           |
+           +--> [Cache Layer]   →  [Redirect to long URL]
+3. 短码生成（ID Generation）
+For ID generation, I considered a few options:
+
+Option 1: Auto-Increment ID + Base62 encoding (推荐)
+
+每个 URL 对应一个递增 ID，例如 123456 → 编码为 abc123
+
+Base62 encoding uses [0–9a–zA–Z], keeping short code within ~6–8 characters
+
+优点：
+
+去重简单
+
+易于解码调试
+
+在高并发下可加锁或分片生成 ID
+
+(可提及备用方案)
+
+UUID + Hash (如 md5, sha256) → 随机但需防碰撞
+
+Pre-generated short code queue → 高并发生成提前准备
+
+4. 重定向逻辑（Redirection Flow）
+When a user clicks a short link, we need to resolve and redirect:
+
+User hits GET /abc123
+
+Lookup abc123 → long URL
+
+First in Redis Cache
+
+On miss, fallback to DB (MySQL / DynamoDB)
+
+Return 302 Found or 301 Moved Permanently
+
+优化点：
+
+使用 Redis 缓存热点短码
+
+热门短链静态部署在 CDN，做边缘加速
+
+5. 存储层设计（Storage Design）
+Each short code maps to a long URL with metadata.
+
+表结构示意：
+
+short_code	long_url	created_at	expiration	user_id
+
+主键：short_code
+
+索引：expiration，用于定期清理过期链接
+
+可选字段：点击次数、创建者等
+
+存储选型：
+
+MySQL / PostgreSQL for reliable mapping
+
+DynamoDB / Cassandra for scalability (NoSQL)
+
+Redis for cache
+
+S3 for backup/archive if needed
+
+6. 可扩展性与高可用（Scalability & Availability）
+For horizontal scaling:
+
+Web/API Server: 多节点 behind Load Balancer
+
+DB: 分库分表，按 hash(short_code) 分片
+
+Cache: 使用 Redis Cluster
+
+CDN: 热门短链可预生成静态 HTML 页并通过 CDN 加速
+
+可部署在多个 Region，使用地理负载均衡（GeoDNS）
+
+7. 扩展功能（Advanced Features）
+If time allows, I’d also design for:
+
+Custom short codes (e.g. /my-brand)
+
+URL analytics: click count, referrer, geolocation
+
+URL expiration & auto cleanup
+
+Abuse prevention: rate limit, malware scanning (via VirusTotal API)
+
+8. 瓶颈与优化点（Bottlenecks & Tradeoffs）
+DB 写入：引入写队列 + 批量写入机制
+
+Redis 缓存击穿：加锁防止并发击穿
+
+热点短链：通过 CDN 缓存或直接返回静态页面
+
+9. 总结（Wrap-up）
+In summary, the system uses Base62 short codes generated from sequential IDs, stored in a scalable DB, with Redis and CDN for fast redirection. It’s optimized for high-read traffic, supports optional customization, and can scale horizontally.
+
+Tips:
+
+用例子解释：longurl.com/123456 → short.ly/abc123
+
+用术语体现能力：如 TTL、cache-aside、write-through、eventual consistency
+
+最后 30 秒主动提 Trade-offs 或下一步扩展设计（加分）

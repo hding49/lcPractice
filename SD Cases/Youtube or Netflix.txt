@@ -1,0 +1,155 @@
+Designing YouTube or Netflix is a classic system design interview question. It’s a large-scale, distributed system, so the goal is not to build every detail, but to show your ability to analyze requirements, break down the problem, and design scalable, maintainable components.
+
+✅ Step-by-Step Approach
+1. Clarify Requirements
+Ask the interviewer:
+
+Functional Requirements (FR):
+
+Upload videos (YouTube) / Ingest content (Netflix)
+
+Stream videos
+
+View/watch videos
+
+Search and browse content
+
+Recommend videos
+
+Like, comment, share (YouTube-specific)
+
+Subscription (YouTube) or account access control (Netflix)
+
+Non-Functional Requirements (NFR):
+
+High availability
+
+Low latency video streaming
+
+Scalability (handle millions of users and videos)
+
+Durability (videos shouldn't be lost)
+
+Consistency for user-related data (likes, history)
+
+2. High-Level Components
+pgsql
+Copy
+Edit
+Client Apps (Web, Mobile)
+      |
+   API Gateway
+      |
++-------------------+
+|     Backend       |
++-------------------+
+| Upload Service    |
+| Video Metadata DB |
+| Video Processing  |
+| Streaming Service |
+| Recommendation    |
+| User Service      |
+| Search Service    |
++-------------------+
+      |
++-------------------------+
+|     Storage Layer       |
++-------------------------+
+| Object Storage (S3/GCS) |
+| CDN                     |
+| SQL/NoSQL Databases     |
+| Elasticsearch (Search) |
+| Redis/Memcached (Cache)|
++-------------------------+
+3. Key Component Deep Dive
+🔹 Video Upload + Processing
+Upload Service handles file upload.
+
+Store raw video in Object Storage (e.g., AWS S3).
+
+Trigger Video Processing Pipeline:
+
+Transcode video into different resolutions (240p, 360p, 720p, etc.)
+
+Store processed formats in object storage
+
+Extract thumbnails
+
+Generate metadata (duration, resolution, etc.)
+
+Use a job queue like Kafka or SQS to decouple upload from processing.
+
+🔹 Video Metadata Database
+Store title, description, tags, category, uploader ID, timestamps.
+
+Use Relational DB (e.g., PostgreSQL) or NoSQL (e.g., Cassandra).
+
+Indexed fields: videoId, uploaderId, tags, title
+
+🔹 Streaming
+Use CDNs (Content Delivery Networks) like Cloudflare, Akamai to cache video chunks near users.
+
+Videos are chunked (HLS/DASH) and streamed in segments.
+
+Use manifest files to control resolution switching (adaptive bitrate).
+
+🔹 User Service
+Manages profiles, subscriptions, history, watchlists.
+
+Account authentication (OAuth, SSO)
+
+🔹 Recommendation System
+Real-time and batch processing:
+
+Collaborative filtering
+
+Watch history
+
+Trending videos
+
+Use Spark/Flink for batch
+
+Redis for fast recommendation fetch
+
+🔹 Search
+Use Elasticsearch for indexing title, description, tags.
+
+Support fuzzy matching, autocomplete.
+
+🔹 Caching
+Use Redis or Memcached for:
+
+Popular videos
+
+Video metadata
+
+Home feed
+
+🔹 Analytics & Monitoring
+Track views, watch time, clicks.
+
+Use Kafka + Hadoop/Spark for processing
+
+Use Prometheus + Grafana for monitoring.
+
+4. Scalability Considerations
+Shard metadata DB by user ID or video ID
+
+Use CDNs to scale video delivery globally
+
+Use asynchronous processing for video handling
+
+Use horizontal scaling for stateless services (API, auth, search)
+
+5. Bottlenecks & Trade-offs
+Video processing is heavy: use cloud-native transcoding (AWS MediaConvert)
+
+Latency vs. consistency: cache heavily for performance but keep source of truth in DB
+
+Storage cost: videos are huge; compress and store cold videos in low-cost tiers
+
+Bonus: Multi-region deployment (Netflix)
+User closest to CDN edge gets video
+
+DB replication across regions (eventual consistency for some data)
+
