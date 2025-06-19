@@ -1,0 +1,232 @@
+System design:
+● job scheduler
+● 1. Should be able to create jobs
+● 2. Should be able to schedule and run jobs
+● 3. Should be able to report failures and successes
+● 4. Should be reliable and have strong guarantees about its job runs
+● 5. Should be able to view logs and status of running jobs, as well as previously finished jobs
+● 6. Should be able to handle when a job takes longer to run than expected (SLA)
+●
+● focus on fault tolerance and schema. i got hung up on the last requirement where my schema didn't really support the last req for example if a job is to be run once every 5 minutes and the first one is taking too long, 
+the first job should not impact the next job running at the next scheduled time.
+
+
+1. Core Requirements Recap
+Create jobs (with scheduling metadata)
+
+Schedule and run jobs repeatedly or once
+
+Report success/failure of each run
+
+Logs and status for running/completed jobs
+
+Reliable, strong guarantees — no lost jobs, no silent failures
+
+Handle long-running jobs without blocking future scheduled runs
+
+2. Key Challenges / Design Considerations
+Jobs may be scheduled periodically (e.g. every 5 mins)
+
+If one run takes too long, next scheduled run should still start on time (no queuing behind)
+
+Ability to detect and handle failed or stuck jobs (e.g. timeouts, retries)
+
+Logs and status queries should be easy and performant
+
+System should handle crashes or restarts gracefully (fault-tolerance)
+
+3. High-Level Architecture Overview
+Components:
+
+Job Definition Store — stores job metadata & schedule
+
+Job Run Store — stores each job execution instance, status, logs
+
+Scheduler / Dispatcher — triggers job runs based on schedule, independent for each run
+
+Worker(s) — execute the actual job logic asynchronously
+
+Monitoring & Logging — track job success/failure, runtime, logs
+
+4. Schema Design
+Tables
+Job (Job Definitions)
+Field	Type	Description
+job_id	UUID (PK)	Unique identifier
+name	String	Job name
+schedule_cron	String	Cron expression or interval string
+command	String	Command/script to run
+sla_timeout_secs	Integer	Max allowed runtime before SLA breach
+created_at	Timestamp	When job created
+updated_at	Timestamp	Last updated
+
+JobRun (Job Execution Instances)
+Field	Type	Description
+run_id	UUID (PK)	Unique identifier for run
+job_id	UUID (FK)	Refers to Job
+scheduled_time	Timestamp	When this run was scheduled
+start_time	Timestamp	Actual job start time
+end_time	Timestamp	Actual job end time
+status	Enum	PENDING, RUNNING, SUCCESS, FAILURE, TIMEOUT
+logs	Text or Link	Logs or pointer to logs
+retries	Integer	Number of retries
+created_at	Timestamp	When run entry created
+
+5. Handling Overlapping / Long-Running Jobs
+Key idea: treat each scheduled run independently
+When schedule triggers a run, create a new JobRun entry with status PENDING
+
+Start execution asynchronously, update status to RUNNING and timestamps accordingly
+
+The next scheduled run will also create a separate JobRun even if previous one is still running
+
+This naturally allows overlapping runs and avoids blocking future runs
+
+SLA Handling (Timeout detection)
+Use sla_timeout_secs from job definition
+
+A separate monitoring process periodically scans running jobs:
+
+For each RUNNING job, check if current_time - start_time > sla_timeout_secs
+
+If yes, mark job as TIMEOUT and trigger failure handling/retries if applicable
+
+6. Fault Tolerance & Reliability
+Persistent storage for jobs and runs (e.g. SQL or NoSQL DB) to avoid lost data on crashes
+
+Idempotent JobRun creation to avoid duplicate runs for same scheduled_time
+
+Retries: Keep retry count per run, policy can be configured
+
+Distributed workers to run jobs, so one worker failure won’t block jobs
+
+Use heartbeats or lease locks to detect worker failures and reassign jobs
+
+Use event-driven architecture or message queues to decouple scheduler from worker
+
+7. Viewing Logs and Status
+Query JobRun table filtering by job_id, status, or time range for logs and run history
+
+For live jobs, status = RUNNING and start_time present but no end_time yet
+
+Logs can be stored directly or offloaded to a log system (e.g. ELK stack) with pointers in DB
+
+8. Summary Diagram (Conceptual)
+sql
+Copy
+Edit
+Job Definition Table
+        |
+Scheduler (cron-based or timer-based) 
+        | -- creates --> JobRun record (new run)
+        |                 status = PENDING
+        | -- dispatch --> Worker pool picks up run
+Worker --> execute job --> update JobRun status RUNNING -> SUCCESS/FAILURE/TIMEOUT
+        |
+Monitor  -- checks for long-running jobs and triggers TIMEOUT if SLA breached
+        |
+Dashboard/Logs <- query JobRun records for history/status/logs
+
+
+
+Architecture Flow
+1. Job Creation
+User (or admin) creates a job via UI/API.
+
+Job metadata (name, schedule, command, SLA timeout, etc.) is saved into the Job Definition Store.
+
+2. Scheduling and Dispatching
+A Scheduler service continuously evaluates job schedules (e.g., using cron or interval timers).
+
+When the scheduled time for a job arrives, the scheduler:
+
+Creates a new JobRun entry for that scheduled execution, with status PENDING and scheduled_time.
+
+Publishes a job execution request event/message (e.g., to a queue/topic) or directly assigns the job run to a worker.
+
+3. Job Execution
+One or more Worker services listen for job execution requests.
+
+Upon receiving a request:
+
+The worker updates the corresponding JobRun status to RUNNING and records the start_time.
+
+The worker executes the actual job command or script asynchronously.
+
+During execution, logs are streamed or collected.
+
+Upon job completion:
+
+Worker updates JobRun status to SUCCESS or FAILURE.
+
+Records end_time and stores logs or pointers to logs.
+
+4. Handling Overlapping Runs / SLA
+Because each scheduled run creates a separate JobRun entry, multiple runs can overlap.
+
+The Scheduler does NOT wait for previous runs to complete before scheduling new ones.
+
+A Monitoring Service periodically scans all RUNNING JobRuns:
+
+Checks if any exceed their SLA timeout (current_time - start_time > sla_timeout_secs).
+
+If so, marks those runs as TIMEOUT.
+
+Optionally triggers alerts, retries, or compensating actions.
+
+5. Fault Tolerance and Reliability
+All state (job definitions, runs, logs) is persisted in a durable store (database, distributed storage).
+
+Workers use heartbeats or leases to indicate liveness.
+
+If a worker crashes mid-job:
+
+The monitoring service or scheduler detects the stale RUNNING job (no heartbeat update).
+
+Marks job as FAILURE or retries it according to policy.
+
+Scheduler is stateless or supports leader election to avoid duplication.
+
+Message queues (e.g., Kafka, RabbitMQ) decouple scheduling from execution.
+
+6. Viewing Logs and Status
+Users query the JobRun records via UI/API to see:
+
+Status of running jobs (RUNNING)
+
+History of completed jobs (SUCCESS, FAILURE, TIMEOUT)
+
+Access logs for any job run
+
+Visual Flow Diagram (Textual)
+sql
+Copy
+Edit
+[User/API]
+    |
+    v
+[Job Definition Store] <--- (job metadata saved)
+    |
+    v
+[Scheduler Service] --- (triggered by time)
+    | creates JobRun entry (PENDING)
+    | publishes job run message
+    v
+[Worker Pool] <-------- (consumes job run message)
+    | updates JobRun to RUNNING
+    | executes job asynchronously
+    | updates JobRun to SUCCESS/FAILURE
+    v
+[JobRun Store] <------- (status + logs stored)
+    |
+    v
+[Monitoring Service]
+    | periodically scans RUNNING jobs
+    | marks TIMEOUT jobs if SLA exceeded
+    v
+[Alerts/Retry mechanisms]
+
+    |--------------------------------|
+    |                                |
+    v                                v
+[UI/API for Logs and Status]     [Notification/Alert Systems]
