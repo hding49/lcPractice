@@ -38,5 +38,5 @@ var rob = function(nums) {
     };
 
     if (nums.length === 1) return nums[0];
-    return Math.max(getMax(nums.slice(0, -1)), getMax(nums.slice(1)), nums[0]);    
+    return Math.max(getMax(nums.slice(0, -1)), getMax(nums.slice(1)));    
 };
