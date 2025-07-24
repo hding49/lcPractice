@@ -64,40 +64,51 @@
 // Every offset is >= 0.
 // We never have any duplicate offsets.
 
+// 记录所有已处理的 offset（用一个 Set 存储）
+
+// 维护上一次成功 commit 的最大值 maxCommitted
+
+// 每次处理完一个 offset，检查是否可以从 maxCommitted + 1 开始连续推进 offset
+
+// 如果能推进，就提交最大的连续 offset
+
+// 否则就返回 -1
+
 
 function offsetCommits(processed) {
-  const seen = new Set(); // 已处理 offset
-  const result = [];
-  let expected = 0; // 目前应该 commit 的起点（从 0 开始）
+  const seen = new Set(); // 存储已处理过的 offset
+  const result = [];      // 最终结果数组
+  let maxCommitted = -1;  // 当前已提交的最大 offset，初始为 -1 表示还未提交
 
+  // 遍历处理顺序中的每个 offset
   for (let offset of processed) {
-    seen.add(offset);
+    seen.add(offset); // 标记该 offset 已处理
 
-    // 不断向前推进 expected，直到遇到断层
-    while (seen.has(expected)) {
-      expected++;
+    // 从当前已提交的最大 offset 的下一个开始，尝试往前推进
+    let next = maxCommitted + 1;
+
+    // 只要下一个 offset 存在于已处理集合中，就可以继续推进
+    while (seen.has(next)) {
+      next++;
     }
 
-    // 如果可以提交（说明从 0 到 expected-1 都处理了）
-    if (expected - 1 === offset) {
-      result.push(offset);
+    // 如果推进到了更高的 offset，说明可以 commit（贪心提交到最大连续 offset）
+    if (next - 1 > maxCommitted) {
+      maxCommitted = next - 1;      // 更新最大提交 offset
+      result.push(maxCommitted);    // 记录此次提交的 offset
     } else {
-      result.push(-1);
+      result.push(-1); // 否则不能提交，标记为 -1
     }
   }
 
-  return result;
+  return result; // 返回所有提交记录
 }
 
+// Test Case 1
+console.log(offsetCommits([2, 0, 1])); // [-1, 0, 2]
 
+// Test Case 2
+console.log(offsetCommits([0, 1, 2])); // [0, 1, 2]
 
-offsetCommits([2, 0, 1])
-// 输出: [-1, 0, 2]
-
-
-offsetCommits([0, 1, 2])
-// 输出: [0, 1, 2]
-
-
-offsetCommits([2, 1, 0, 5, 4])
-// 输出: [-1, -1, 2, -1, -1]
+// Test Case 3
+console.log(offsetCommits([2, 1, 0, 5, 4])); // [-1, -1, 2, -1, -1]
