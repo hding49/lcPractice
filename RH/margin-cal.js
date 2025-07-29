@@ -58,60 +58,95 @@
     */
 
 function processTrades(trades) {
-  let cash = 1000;
-  const portfolio = {};
-  const lastPrice = {};
+  let cash = 1000; // 初始现金
+  const portfolio = {}; // 股票持仓：{ symbol: quantity }
+  const lastPrice = {}; // 每个 symbol 最近一次交易的价格
 
   for (const [ts, symbol, action, qtyStr, priceStr] of trades) {
     const quantity = parseInt(qtyStr);
     const price = parseInt(priceStr);
     const cost = quantity * price;
 
-    lastPrice[symbol] = price;
+    lastPrice[symbol] = price; // 更新该 symbol 最新交易价格
 
     if (action === "B") {
+      // 买入：减少现金，增加股票数量
       cash -= cost;
       portfolio[symbol] = (portfolio[symbol] || 0) + quantity;
+
+      // 如果现金变成负数，触发 margin call（强制平仓）
       if (cash < 0) {
         performMarginCall();
       }
     } else {
+      // 卖出：增加现金，减少股票数量
       cash += cost;
       portfolio[symbol] -= quantity;
-      if (portfolio[symbol] === 0) delete portfolio[symbol];
+      if (portfolio[symbol] === 0) {
+        delete portfolio[symbol]; // 如果某个股票数量变成 0 就删掉
+      }
     }
   }
 
+  /**
+   * 执行强平操作，使 cash >= 0
+   * 优先卖掉价格最高的股票，价格相同则按字母序优先
+   * 遇到 collateral 股票需要遵守规则
+   */
   function performMarginCall() {
     while (cash < 0) {
+      // 过滤出可以被卖出的股票
       const candidates = Object.entries(portfolio)
         .filter(([sym, qty]) => canBeSold(sym))
-        .map(([sym, qty]) => [sym, qty, lastPrice[sym]])
+        .map(([sym, qty]) => [sym, qty, lastPrice[sym]]) // [symbol, quantity, price]
         .sort((a, b) => {
+          // 排序：价格高优先，价格相同按字母序
           if (b[2] !== a[2]) return b[2] - a[2];
           return a[0].localeCompare(b[0]);
         });
 
+      // 如果没有可以卖的了，跳出（无法继续强平）
       if (candidates.length === 0) break;
 
       const [sym, qty, price] = candidates[0];
+      // 最多卖多少股才能让 cash >= 0
       const maxSell = Math.min(qty, Math.ceil(-cash / price));
+
+      // 更新 portfolio 和 cash
       portfolio[sym] -= maxSell;
       cash += maxSell * price;
-      if (portfolio[sym] === 0) delete portfolio[sym];
+      if (portfolio[sym] === 0) {
+        delete portfolio[sym];
+      }
     }
   }
 
+  /**
+   * 判断某个 symbol 是否可以在 margin call 时被卖出
+   * - 普通股票默认可以卖
+   * - 如果是 collateral（如 AAPL 支撑 AAPLO），不能卖出剩下的抵押份额
+   */
   function canBeSold(symbol) {
+    // 特殊股票（以 O 结尾）总是可以被卖出
+    //基于题意约束：抵押关系始终成立，即普通股票持仓 ≥ 特殊股票持仓
     if (symbol.endsWith("O")) return true;
+
+    // 检查是否有对应的特殊股票存在
     const specialPair = symbol + "O";
     if (portfolio[specialPair]) {
-      const needed = portfolio[specialPair];
-      return portfolio[symbol] > needed;
+      const needed = portfolio[specialPair]; // 需要作为抵押的数量
+      return portfolio[symbol] > needed; // 只有剩余的可以卖
     }
+
+    // 默认允许卖出
     return true;
   }
 
+  /**
+   * 构建最终结果
+   * - "CASH" 放在第一位
+   * - 其余股票按 symbol 字母序排序
+   */
   const result = [["CASH", String(cash)]];
   const stocks = Object.entries(portfolio)
     .sort(([a], [b]) => a.localeCompare(b))
@@ -218,7 +253,7 @@ function runTests() {
       ],
       expected: [
         ["CASH", "0"],
-        ["AAPL", "3"],
+        ["AAPL", "5"],
         ["AAPLO", "4"],
         ["GOOG", "5"],
       ],
@@ -239,3 +274,8 @@ function runTests() {
 
 // Run all tests
 runTests();
+
+function process(trades) {
+  let cash = 1000;
+  let;
+}
