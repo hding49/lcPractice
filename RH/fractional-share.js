@@ -27,7 +27,6 @@
 // // Inventory for AAPL is currently 0.99 shares.
 // inventory: [["AAPL","99"]]
 
-
 // Expected Output:
 // // The users buys 0.42 shares from inventory, leaving us with 0.57 shares.
 // [["AAPL","57"]]
@@ -64,7 +63,7 @@
 
 // An example for AAPL of 0.50 shares and GOOGL of 0.75 shares would be:
 
-// [["AAPL","50"], 
+// [["AAPL","50"],
 //  ["GOOG","75"]]
 // [output] array.array.string
 
@@ -72,9 +71,8 @@
 
 // e.g.
 
-// ["AAPL","58"], 
+// ["AAPL","58"],
 //  ["GOOG","50"]]
-
 
 function processOrders(orders, inventory) {
   // 把 inventory 转换成 Map，方便处理
@@ -85,20 +83,20 @@ function processOrders(orders, inventory) {
 
   for (let [symbol, type, amount, priceStr] of orders) {
     const price = parseInt(priceStr); // 当前价格（如 100 表示 $1.00）
-    const isDollar = amount.startsWith('$');
+    const isDollar = amount.startsWith("$");
     let quantity;
 
     // 计算这次交易的 shares 数量（都乘以100）
     if (isDollar) {
       const dollarValue = parseInt(amount.slice(1)); // 去掉 $
-      quantity = Math.floor(dollarValue * 100 / price);
+      quantity = Math.floor((dollarValue * 100) / price);
     } else {
       quantity = parseInt(amount);
     }
 
     let current = inventoryMap.get(symbol) || 0;
 
-    if (type === 'B') {
+    if (type === "B") {
       // BUY 订单
       if (current >= quantity) {
         current -= quantity; // 库存足够就直接减
@@ -123,11 +121,14 @@ function processOrders(orders, inventory) {
   }
 
   // 构造输出，保持顺序
-  return inventory.map(([symbol]) => [symbol, inventoryMap.get(symbol).toString()]);
+  return inventory.map(([symbol]) => [
+    symbol,
+    inventoryMap.get(symbol).toString(),
+  ]);
 }
 
-const orders = [["AAPL","B","$42","100"]];
-const inventory = [["AAPL","50"]];
+const orders = [["AAPL", "B", "$42", "100"]];
+const inventory = [["AAPL", "50"]];
 
 console.log(processOrders(orders, inventory));
 // 输出: [["AAPL", "8"]] （0.50 - 0.42 = 0.08）

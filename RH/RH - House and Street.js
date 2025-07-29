@@ -43,7 +43,6 @@
 
 // // Follow-up 2: (Test 10) An offsetting match is a house_trade+house_trade or street_trade+street_trade pair where the symbol and quantity of both trades are the same, but the type is different (one is a buy and one is a sell). Prioritize exact and fuzzy matches over offsetting matches. Prioritize matching the earliest alphabetical buy with the earliest alphabetical sell.
 
-
 // void addTrades(unordered_map<string, int>& trade2count,
 //                vector<string>& trades) {
 //     for (auto it = trade2count.begin(); it != trade2count.end(); it++) {
@@ -54,8 +53,6 @@
 //     }
 //     sort(trades.begin(), trades.end());
 // }
-
-
 
 // void exactMatch(vector<string>& house_trades,
 //                 vector<string>& street_trades,
@@ -77,12 +74,12 @@
 //         }
 //         int matches = min(house_trade2count[trade], street_trade2count[trade]);
 //         house_trade2count[trade] -= matches;
-//         street_trade2count[trade] -= matches;     
+//         street_trade2count[trade] -= matches;
 //     }
-    
+
 //     addTrades(house_trade2count, output_house_trades);
-    
-//     addTrades(street_trade2count, output_street_trades);    
+
+//     addTrades(street_trade2count, output_street_trades);
 // }
 
 // void fuzzMatchWithExact(vector<string>& house_trades,
@@ -113,15 +110,12 @@
 //         if (it->second.empty()) continue;
 //         output_street_trades.insert(output_street_trades.end(), it->second.begin(), it->second.end());
 //     }
-        
+
 // }
-
-
-
 
 // void print(vector<string>& house_trades,
 //            vector<string>& street_trades) {
-    
+
 //     for (auto& trade : house_trades) {
 //         cout << "\n" << trade;
 //     }
@@ -144,17 +138,16 @@
 //     vector<string> trades;
 //     exactMatch(house_trades, street_trades, output_house_trades, output_street_trades);
 //     print(output_house_trades, output_street_trades);
-    
-    
+
 //     house_trades = {
-//          "AAPL,S,0010,ZYX445", 
-//          "AAPL,S,0010,ZYX446", 
-//          "AAPL,B,0010,ABC123", 
+//          "AAPL,S,0010,ZYX445",
+//          "AAPL,S,0010,ZYX446",
+//          "AAPL,B,0010,ABC123",
 //          "GOOG,S,0050,GHG545"
 //     };
 //     street_trades = {
-//          "GOOG,S,0050,GHG545", 
-//          "AAPL,S,0010,ZYX444", 
+//          "GOOG,S,0050,GHG545",
+//          "AAPL,S,0010,ZYX444",
 //          "AAPL,B,0010,TTT222"
 //     };
 //     cout << "\n\nQ1 test case 2:";
@@ -162,8 +155,6 @@
 //     print(output_house_trades, output_street_trades);
 
 // }
-
-
 
 function tradeKey(trade) {
   return trade.trim();
@@ -273,18 +264,13 @@ function solve(house, street) {
   return result;
 }
 
-
-
 const house1 = [
   "AAPL,B,0080,ABC123",
   "AAPL,B,0050,ABC123",
-  "GOOG,S,0050,CDC333"
+  "GOOG,S,0050,CDC333",
 ];
 
-const street1 = [
-  "  FB,B,0100,GBGGGG",
-  "AAPL,B,0100,ABC123"
-];
+const street1 = ["  FB,B,0100,GBGGGG", "AAPL,B,0100,ABC123"];
 
 console.log("Test Case 1:");
 console.log(solve(house1, street1));
@@ -295,18 +281,17 @@ console.log(solve(house1, street1));
 //   "GOOG,S,0050,CDC333"
 // ]
 
-
 const house2 = [
   "AAPL,S,0010,ZYX445",
   "AAPL,S,0010,ZYX446",
   "AAPL,B,0010,ABC123",
-  "GOOG,S,0050,GHG545"
+  "GOOG,S,0050,GHG545",
 ];
 
 const street2 = [
   "GOOG,S,0050,GHG545",
   "AAPL,S,0010,ZYX444",
-  "AAPL,B,0010,TTT222"
+  "AAPL,B,0010,TTT222",
 ];
 
 console.log("Test Case 2:");

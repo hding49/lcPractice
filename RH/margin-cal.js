@@ -1,4 +1,4 @@
-  /*
+/*
         Our goal is to build a simplified version of a real Robinhood system that reads a customer's trades from a stream, maintains what they own, and rectifies running out of cash (through a process called a "margin call", which we'll define later). We’re looking for clean code, good naming, testing, etc. We're not particularly looking for the most performant solution.
 
     **Step 1 (tests 1-4): Parse trades and build a customer portfolio**
@@ -57,12 +57,10 @@
     [["CASH", "25"], ["AAPL", "5"], ["AAPLO", "5"], ["GOOG", "3"]
     */
 
-
-
-    function processTrades(trades) {
+function processTrades(trades) {
   let cash = 1000;
-  const portfolio = {};           // 股票持仓 {symbol: quantity}
-  const lastPrice = {};           // 记录每支股票最后一次价格
+  const portfolio = {}; // 股票持仓 {symbol: quantity}
+  const lastPrice = {}; // 记录每支股票最后一次价格
 
   for (const [ts, symbol, action, qtyStr, priceStr] of trades) {
     const quantity = parseInt(qtyStr);
@@ -131,79 +129,53 @@
   return result.concat(stocks);
 }
 
-
 // Test Case 1: 单笔买入
-[
-  ["1", "AAPL", "B", "5", "100"]
-]
-// Expected: [["CASH", "500"], ["AAPL", "5"]]
+[["1", "AAPL", "B", "5", "100"]][
+  // Expected: [["CASH", "500"], ["AAPL", "5"]]
 
---------------------------------------------------
+  // Test Case 2: 买入 + 卖出
+  (["1", "AAPL", "B", "10", "10"], ["2", "AAPL", "S", "5", "15"])
+][
+  // Expected: [["CASH", "925"], ["AAPL", "5"]]
 
-// Test Case 2: 买入 + 卖出
-[
-  ["1", "AAPL", "B", "10", "10"],
-  ["2", "AAPL", "S", "5", "15"]
-]
-// Expected: [["CASH", "925"], ["AAPL", "5"]]
+  // Test Case 3: 多个股票买入
+  (["1", "AAPL", "B", "10", "10"], ["2", "GOOG", "B", "20", "5"])
+][
+  // Expected: [["CASH", "800"], ["AAPL", "10"], ["GOOG", "20"]]
 
---------------------------------------------------
+  // Test Case 4: 简单 Margin Call
+  (["1", "AAPL", "B", "10", "100"], // cash = 0
+  ["2", "AAPL", "S", "2", "80"], // cash = 160
+  ["3", "GOOG", "B", "15", "20"]) // cost = 300, cash = -140 => margin call
+][
+  // Expected: [["CASH", "20"], ["AAPL", "6"], ["GOOG", "15"]]
 
-// Test Case 3: 多个股票买入
-[
-  ["1", "AAPL", "B", "10", "10"],
-  ["2", "GOOG", "B", "20", "5"]
-]
-// Expected: [["CASH", "800"], ["AAPL", "10"], ["GOOG", "20"]]
-
-
-
-// Test Case 4: 简单 Margin Call
-[
-  ["1", "AAPL", "B", "10", "100"],  // cash = 0
-  ["2", "AAPL", "S", "2", "80"],    // cash = 160
-  ["3", "GOOG", "B", "15", "20"]    // cost = 300, cash = -140 => margin call
-]
-// Expected: [["CASH", "20"], ["AAPL", "6"], ["GOOG", "15"]]
-
---------------------------------------------------
-
-// Test Case 5: 按 symbol 排序决定卖谁（AAPL 和 GOOG 都80元）
-[
-  ["1", "AAPL", "B", "5", "80"],
+  // Test Case 5: 按 symbol 排序决定卖谁（AAPL 和 GOOG 都80元）
+  (["1", "AAPL", "B", "5", "80"],
   ["2", "GOOG", "B", "5", "80"],
-  ["3", "TSLA", "B", "20", "50"]  // cash < 0, margin call
-]
-// Expected: 把贵股票先卖（AAPL 和 GOOG 价格相同 -> 按字母序卖 AAPL）
-// 最终：AAPL: 2, GOOG: 5, TSLA: 20, CASH: >= 0
+  ["3", "TSLA", "B", "20", "50"]) // cash < 0, margin call
+][
+  // Expected: 把贵股票先卖（AAPL 和 GOOG 价格相同 -> 按字母序卖 AAPL）
+  // 最终：AAPL: 2, GOOG: 5, TSLA: 20, CASH: >= 0
 
+  // Test Case 6: 拥有 collateral，不触发强平
+  (["1", "AAPL", "B", "5", "100"], // cash = 500
+  ["2", "AAPLO", "B", "5", "75"]) // cash = 125
+][
+  // Expected: [["CASH", "125"], ["AAPL", "5"], ["AAPLO", "5"]]
 
-// Test Case 6: 拥有 collateral，不触发强平
-[
-  ["1", "AAPL", "B", "5", "100"],     // cash = 500
-  ["2", "AAPLO", "B", "5", "75"]      // cash = 125
-]
-// Expected: [["CASH", "125"], ["AAPL", "5"], ["AAPLO", "5"]]
+  // Test Case 7: Margin Call 不能卖掉 collateral
+  (["1", "AAPL", "B", "5", "100"], // cash = 500
+  ["2", "GOOG", "B", "5", "75"], // cash = 125
+  ["3", "AAPLO", "B", "5", "50"]) // cash = -125, margin call
+][
+  // GOOG 价格 75，比 AAPL 低，但只能卖 GOOG（AAPL 是 collateral）
+  // 应该卖出 2 股 GOOG，拿到 150 现金，CASH = 25
+  // Expected: [["CASH", "25"], ["AAPL", "5"], ["AAPLO", "5"], ["GOOG", "3"]]
 
---------------------------------------------------
-
-// Test Case 7: Margin Call 不能卖掉 collateral
-[
-  ["1", "AAPL", "B", "5", "100"],     // cash = 500
-  ["2", "GOOG", "B", "5", "75"],      // cash = 125
-  ["3", "AAPLO", "B", "5", "50"]      // cash = -125, margin call
-]
-// GOOG 价格 75，比 AAPL 低，但只能卖 GOOG（AAPL 是 collateral）
-// 应该卖出 2 股 GOOG，拿到 150 现金，CASH = 25
-// Expected: [["CASH", "25"], ["AAPL", "5"], ["AAPLO", "5"], ["GOOG", "3"]]
-
---------------------------------------------------
-
-// Test Case 8: 卖掉特殊股票，释放 collateral，进而可卖 collateral
-[
-  ["1", "AAPL", "B", "5", "100"],
-  ["2", "AAPLO", "B", "5", "100"],    // cash = -100, margin call
-  ["3", "GOOG", "B", "5", "20"]       // 再次 margin call
-]
+  // Test Case 8: 卖掉特殊股票，释放 collateral，进而可卖 collateral
+  (["1", "AAPL", "B", "5", "100"],
+  ["2", "AAPLO", "B", "5", "100"], // cash = -100, margin call
+  ["3", "GOOG", "B", "5", "20"]) // 再次 margin call
+];
 // 可能先卖掉 AAPLO 部分，释放 AAPL 可卖
-

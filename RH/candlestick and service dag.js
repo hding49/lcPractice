@@ -124,14 +124,12 @@
 // return "Hello, " + name;
 // }
 
-
-
 function parseAndAggregate(prices_to_parse) {
   const interval = 10;
   if (!prices_to_parse) return "";
 
-  const prices = prices_to_parse.split(',').map(p => {
-    const [price, ts] = p.split(':').map(Number);
+  const prices = prices_to_parse.split(",").map((p) => {
+    const [price, ts] = p.split(":").map(Number);
     return { price, timestamp: ts };
   });
 
@@ -152,8 +150,8 @@ function parseAndAggregate(prices_to_parse) {
     if (windowPrices.length > 0) {
       const first = windowPrices[0].price;
       const last = windowPrices[windowPrices.length - 1].price;
-      const max = Math.max(...windowPrices.map(p => p.price));
-      const min = Math.min(...windowPrices.map(p => p.price));
+      const max = Math.max(...windowPrices.map((p) => p.price));
+      const min = Math.min(...windowPrices.map((p) => p.price));
       lastPrice = last;
       result += `{${start},${first},${last},${max},${min}}`;
     } else {
@@ -173,18 +171,20 @@ function parseAndAggregate(prices_to_parse) {
   return result;
 }
 
-
-console.log(parseAndAggregate("1:0,2:1,3:2,4:3,5:4,6:5,7:6,8:7,9:8,10:9,11:10,12:11,13:12,14:13,15:14,16:15,17:16,18:17,19:18,20:19"));
+console.log(
+  parseAndAggregate(
+    "1:0,2:1,3:2,4:3,5:4,6:5,7:6,8:7,9:8,10:9,11:10,12:11,13:12,14:13,15:14,16:15,17:16,18:17,19:18,20:19"
+  )
+);
 // Output: "{0,1,10,10,1}{10,11,20,20,11}"
-
 
 function calculateLoad(service_list, entrypoint) {
   const graph = {};
   const loadCount = new Map();
 
   for (let line of service_list) {
-    const [service, depsStr] = line.split('=');
-    const deps = depsStr ? depsStr.split(',').filter(dep => dep) : [];
+    const [service, depsStr] = line.split("=");
+    const deps = depsStr ? depsStr.split(",").filter((dep) => dep) : [];
     graph[service] = deps;
   }
 
@@ -212,13 +212,12 @@ function calculateLoad(service_list, entrypoint) {
   return result.sort((a, b) => a.localeCompare(b));
 }
 
-
 const service_list = [
   "logging=",
   "user=logging",
   "orders=user,foobar",
   "recommendations=user,orders",
-  "dashboard=user,orders,recommendations"
+  "dashboard=user,orders,recommendations",
 ];
 
 const entrypoint = "dashboard";

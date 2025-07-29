@@ -18,7 +18,7 @@
 // P3=25, S3=35, A3=3 (SNAP)
 // P4=30, S4=25, A4=4 (TSLA)
 
-// Output: $265 (no cash remaining) 
+// Output: $265 (no cash remaining)
 // 3 shares of apple -> 45(15 *3), 135(45 *3)
 // 3 shares of snap -> 75, 105
 // 0.5 share of bynd -> 20, 25
@@ -65,4 +65,3 @@ const stocks = [
 ];
 
 console.log(maximizeFutureValue(M, stocks)); // 输出 265
-
