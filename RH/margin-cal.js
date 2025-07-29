@@ -59,27 +59,23 @@
 
 function processTrades(trades) {
   let cash = 1000;
-  const portfolio = {}; // 股票持仓 {symbol: quantity}
-  const lastPrice = {}; // 记录每支股票最后一次价格
+  const portfolio = {};
+  const lastPrice = {};
 
   for (const [ts, symbol, action, qtyStr, priceStr] of trades) {
     const quantity = parseInt(qtyStr);
     const price = parseInt(priceStr);
     const cost = quantity * price;
 
-    // 更新最新价格
     lastPrice[symbol] = price;
 
     if (action === "B") {
       cash -= cost;
       portfolio[symbol] = (portfolio[symbol] || 0) + quantity;
-
-      // 如果现金为负，强平
       if (cash < 0) {
         performMarginCall();
       }
     } else {
-      // 卖出，增加现金，减少持仓
       cash += cost;
       portfolio[symbol] -= quantity;
       if (portfolio[symbol] === 0) delete portfolio[symbol];
@@ -89,18 +85,16 @@ function processTrades(trades) {
   function performMarginCall() {
     while (cash < 0) {
       const candidates = Object.entries(portfolio)
-        .filter(([sym, qty]) => canBeSold(sym, qty))
+        .filter(([sym, qty]) => canBeSold(sym))
         .map(([sym, qty]) => [sym, qty, lastPrice[sym]])
         .sort((a, b) => {
-          // 高价优先，价格相等时按symbol排序
           if (b[2] !== a[2]) return b[2] - a[2];
           return a[0].localeCompare(b[0]);
         });
 
-      if (candidates.length === 0) break; // 无法卖出
+      if (candidates.length === 0) break;
 
       const [sym, qty, price] = candidates[0];
-
       const maxSell = Math.min(qty, Math.ceil(-cash / price));
       portfolio[sym] -= maxSell;
       cash += maxSell * price;
@@ -108,10 +102,8 @@ function processTrades(trades) {
     }
   }
 
-  // 判断symbol是否可以被卖出（考虑collateral）
-  function canBeSold(symbol, quantity) {
-    // 如果是 collateral，本身不能被卖
-    if (symbol.endsWith("O")) return true; // 特殊股票可以卖
+  function canBeSold(symbol) {
+    if (symbol.endsWith("O")) return true;
     const specialPair = symbol + "O";
     if (portfolio[specialPair]) {
       const needed = portfolio[specialPair];
@@ -120,7 +112,6 @@ function processTrades(trades) {
     return true;
   }
 
-  // 构造结果
   const result = [["CASH", String(cash)]];
   const stocks = Object.entries(portfolio)
     .sort(([a], [b]) => a.localeCompare(b))
@@ -129,53 +120,122 @@ function processTrades(trades) {
   return result.concat(stocks);
 }
 
-// Test Case 1: 单笔买入
-[["1", "AAPL", "B", "5", "100"]][
-  // Expected: [["CASH", "500"], ["AAPL", "5"]]
+// -------------------------
+// ✅ Test Runner
+// -------------------------
+function runTests() {
+  const testCases = [
+    {
+      name: "Test 1: 单笔买入",
+      input: [["1", "AAPL", "B", "5", "100"]],
+      expected: [
+        ["CASH", "500"],
+        ["AAPL", "5"],
+      ],
+    },
+    {
+      name: "Test 2: 买入 + 卖出",
+      input: [
+        ["1", "AAPL", "B", "10", "10"],
+        ["2", "AAPL", "S", "5", "15"],
+      ],
+      expected: [
+        ["CASH", "925"],
+        ["AAPL", "5"],
+      ],
+    },
+    {
+      name: "Test 3: 多个股票买入",
+      input: [
+        ["1", "AAPL", "B", "10", "10"],
+        ["2", "GOOG", "B", "20", "5"],
+      ],
+      expected: [
+        ["CASH", "800"],
+        ["AAPL", "10"],
+        ["GOOG", "20"],
+      ],
+    },
+    {
+      name: "Test 4: 简单 Margin Call",
+      input: [
+        ["1", "AAPL", "B", "10", "100"],
+        ["2", "AAPL", "S", "2", "80"],
+        ["3", "GOOG", "B", "15", "20"],
+      ],
+      expected: [
+        ["CASH", "20"],
+        ["AAPL", "6"],
+        ["GOOG", "15"],
+      ],
+    },
+    {
+      name: "Test 5: 同价股票优先卖字母序早的",
+      input: [
+        ["1", "AAPL", "B", "5", "80"],
+        ["2", "GOOG", "B", "5", "80"],
+        ["3", "TSLA", "B", "20", "50"],
+      ],
+      expected: [
+        ["CASH", "0"],
+        ["AAPL", "2"],
+        ["GOOG", "5"],
+        ["TSLA", "20"],
+      ],
+    },
+    {
+      name: "Test 6: 拥有 collateral，不触发强平",
+      input: [
+        ["1", "AAPL", "B", "5", "100"],
+        ["2", "AAPLO", "B", "5", "75"],
+      ],
+      expected: [
+        ["CASH", "125"],
+        ["AAPL", "5"],
+        ["AAPLO", "5"],
+      ],
+    },
+    {
+      name: "Test 7: Margin Call 不卖 collateral",
+      input: [
+        ["1", "AAPL", "B", "5", "100"],
+        ["2", "GOOG", "B", "5", "75"],
+        ["3", "AAPLO", "B", "5", "50"],
+      ],
+      expected: [
+        ["CASH", "25"],
+        ["AAPL", "5"],
+        ["AAPLO", "5"],
+        ["GOOG", "3"],
+      ],
+    },
+    {
+      name: "Test 8: 卖特殊股票释放 collateral",
+      input: [
+        ["1", "AAPL", "B", "5", "100"],
+        ["2", "AAPLO", "B", "5", "100"],
+        ["3", "GOOG", "B", "5", "20"],
+      ],
+      expected: [
+        ["CASH", "0"],
+        ["AAPL", "3"],
+        ["AAPLO", "4"],
+        ["GOOG", "5"],
+      ],
+    },
+  ];
 
-  // Test Case 2: 买入 + 卖出
-  (["1", "AAPL", "B", "10", "10"], ["2", "AAPL", "S", "5", "15"])
-][
-  // Expected: [["CASH", "925"], ["AAPL", "5"]]
+  for (const { name, input, expected } of testCases) {
+    const actual = processTrades(input);
+    const passed =
+      JSON.stringify(actual) === JSON.stringify(expected)
+        ? "✅"
+        : `❌\nExpected: ${JSON.stringify(
+            expected
+          )}\nActual:   ${JSON.stringify(actual)}`;
+    console.log(`${name} -> ${passed}`);
+  }
+}
 
-  // Test Case 3: 多个股票买入
-  (["1", "AAPL", "B", "10", "10"], ["2", "GOOG", "B", "20", "5"])
-][
-  // Expected: [["CASH", "800"], ["AAPL", "10"], ["GOOG", "20"]]
-
-  // Test Case 4: 简单 Margin Call
-  (["1", "AAPL", "B", "10", "100"], // cash = 0
-  ["2", "AAPL", "S", "2", "80"], // cash = 160
-  ["3", "GOOG", "B", "15", "20"]) // cost = 300, cash = -140 => margin call
-][
-  // Expected: [["CASH", "20"], ["AAPL", "6"], ["GOOG", "15"]]
-
-  // Test Case 5: 按 symbol 排序决定卖谁（AAPL 和 GOOG 都80元）
-  (["1", "AAPL", "B", "5", "80"],
-  ["2", "GOOG", "B", "5", "80"],
-  ["3", "TSLA", "B", "20", "50"]) // cash < 0, margin call
-][
-  // Expected: 把贵股票先卖（AAPL 和 GOOG 价格相同 -> 按字母序卖 AAPL）
-  // 最终：AAPL: 2, GOOG: 5, TSLA: 20, CASH: >= 0
-
-  // Test Case 6: 拥有 collateral，不触发强平
-  (["1", "AAPL", "B", "5", "100"], // cash = 500
-  ["2", "AAPLO", "B", "5", "75"]) // cash = 125
-][
-  // Expected: [["CASH", "125"], ["AAPL", "5"], ["AAPLO", "5"]]
-
-  // Test Case 7: Margin Call 不能卖掉 collateral
-  (["1", "AAPL", "B", "5", "100"], // cash = 500
-  ["2", "GOOG", "B", "5", "75"], // cash = 125
-  ["3", "AAPLO", "B", "5", "50"]) // cash = -125, margin call
-][
-  // GOOG 价格 75，比 AAPL 低，但只能卖 GOOG（AAPL 是 collateral）
-  // 应该卖出 2 股 GOOG，拿到 150 现金，CASH = 25
-  // Expected: [["CASH", "25"], ["AAPL", "5"], ["AAPLO", "5"], ["GOOG", "3"]]
-
-  // Test Case 8: 卖掉特殊股票，释放 collateral，进而可卖 collateral
-  (["1", "AAPL", "B", "5", "100"],
-  ["2", "AAPLO", "B", "5", "100"], // cash = -100, margin call
-  ["3", "GOOG", "B", "5", "20"]) // 再次 margin call
-];
-// 可能先卖掉 AAPLO 部分，释放 AAPL 可卖
+// Run all tests
+runTests();
