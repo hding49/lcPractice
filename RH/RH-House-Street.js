@@ -30,23 +30,6 @@
 
 // Bonus 2: (Test 6) An offsetting match is a match containing exactly two house trades or exactly two street trades where the symbol and quantity of both trades are the same, but the side is different (one is a buy and one is a sell). Prioritize exact and attribute matches over offsetting matches. Prioritize matching the earliest lexicographical buy with the earliest lexicographical sell.
 
-// 标准化交易字符串，去除多余空格，保证格式统一
-function normalizeTrade(trade) {
-  // 以逗号分割交易字符串
-  const parts = trade.split(",");
-  // 去除每个字段的前后空格
-  const trimmedParts = parts.map((p) => p.trim());
-  // symbol固定4字符，右对齐，不足补空格（保证统一格式）
-  trimmedParts[0] = trimmedParts[0].padStart(4, " ").slice(-4);
-  // 重新用逗号连接，返回标准化后的交易字符串
-  return trimmedParts.join(",");
-}
-
-// 对交易数组中的每个元素统一调用normalizeTrade，返回新数组
-function normalizeTrades(trades) {
-  return trades.map(normalizeTrade);
-}
-
 // Step 1: 完全匹配（Exact Match）
 // house 和 street 中完全相同的交易按数量匹配并剔除
 function exactMatch(house, street) {
@@ -153,6 +136,23 @@ function offsettingMatch(trades) {
 
 // 主流程函数：分三步匹配，最后返回剩余未匹配交易，排序输出
 function solve(house, street) {
+  // 标准化交易字符串，去除多余空格，保证格式统一
+  function normalizeTrade(trade) {
+    // 以逗号分割交易字符串
+    const parts = trade.split(",");
+    // 去除每个字段的前后空格
+    const trimmedParts = parts.map((p) => p.trim());
+    // symbol固定4字符，右对齐，不足补空格（保证统一格式）
+    trimmedParts[0] = trimmedParts[0].padStart(4, " ").slice(-4);
+    // 重新用逗号连接，返回标准化后的交易字符串
+    return trimmedParts.join(",");
+  }
+
+  // 对交易数组中的每个元素统一调用normalizeTrade，返回新数组
+  function normalizeTrades(trades) {
+    return trades.map(normalizeTrade);
+  }
+
   // 先统一格式化输入交易字符串，确保匹配时格式一致
   const normHouse = normalizeTrades(house);
   const normStreet = normalizeTrades(street);

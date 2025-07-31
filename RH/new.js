@@ -1,0 +1,1 @@
+// Event window: 输入为三个String[], 分别是event name, start time, end time, 输出为String[]包含所有event的schedule， String[]里的每一个String以event name + left + width形式存储。 Left默认为0， width默认为320， 如果两个事件同时发生，第一个时间left = 0, width = 160, 第二个事件 left = 160, width = 160。如果不是同时发生，按照重叠的portion计算left和width
