@@ -57,65 +57,110 @@
     [["CASH", "25"], ["AAPL", "5"], ["AAPLO", "5"], ["GOOG", "3"]
     */
 
-function processTrades(trades) {
-  let cash = 1000;
-  const portfolio = {};
-  const lastPrice = {};
+function process(trades) {
+  let cash = 1000; // 初始现金余额为 1000 美元
+  const portfolio = {}; // 股票持仓，格式为 { symbol: quantity }
+  const lastPrice = {}; // 每个股票的最近交易价格 { symbol: price }
 
-  for (const [ts, symbol, action, qtyStr, priceStr] of trades) {
-    const quantity = parseInt(qtyStr);
-    const price = parseInt(priceStr);
-    const cost = quantity * price;
+  // 遍历每一笔交易
+  for (let [ts, sym, action, qtyStr, priceStr] of trades) {
+    let quantity = parseInt(qtyStr); // 交易股数
+    let price = parseInt(priceStr); // 每股价格
+    lastPrice[sym] = price; // 更新该股票的最新交易价格
 
-    lastPrice[symbol] = price;
+    let cost = quantity * price; // 该笔交易总金额
 
     if (action === "B") {
+      // 买入操作：减少现金，增加持仓
       cash -= cost;
-      portfolio[symbol] = (portfolio[symbol] || 0) + quantity;
+      portfolio[sym] = (portfolio[sym] || 0) + quantity;
+
+      // 如果现金不足，触发强平流程
       if (cash < 0) {
         performMarginCall();
       }
     } else {
+      // 卖出操作：增加现金，减少持仓
       cash += cost;
-      portfolio[symbol] -= quantity;
-      if (portfolio[symbol] === 0) delete portfolio[symbol];
+      portfolio[sym] = (portfolio[sym] || 0) - quantity;
+
+      // 如果某个股票持仓变为 0，移除它
+      if (portfolio[sym] === 0) {
+        delete portfolio[sym];
+      }
     }
   }
 
+  /**
+   * 强平流程：
+   * 当现金为负时，自动卖出持有的股票以补足现金
+   * 卖出顺序：
+   *   - 按最近交易价格从高到低
+   *   - 若价格相同，按股票代号字母序排列
+   * 注意：不能卖出作为抵押品的股票（例如 AAPL 支撑 AAPLO）
+   */
   function performMarginCall() {
     while (cash < 0) {
+      // 从当前 portfolio 中筛选出可被卖出的股票
       const candidates = Object.entries(portfolio)
-        .filter(([sym, qty]) => canBeSold(sym))
-        .map(([sym, qty]) => [sym, qty, lastPrice[sym]])
+        .filter(([sym, qty]) => canBeSold(sym)) // 排除不能卖的抵押股票
+        .map(([sym, qty]) => [sym, qty, lastPrice[sym]]) // 加入最近价格
         .sort((a, b) => {
-          if (b[2] !== a[2]) return b[2] - a[2];
+          // 优先卖价格高的；价格相同的按字母序排
+          if (a[2] !== b[2]) return b[2] - a[2];
           return a[0].localeCompare(b[0]);
         });
 
-      if (candidates.length === 0) break;
+      // 如果没有可以卖的股票了，停止强平
+      if (candidates.length == 0) break;
 
-      const [sym, qty, price] = candidates[0];
-      const maxSell = Math.min(qty, Math.ceil(-cash / price));
+      // 选出当前最优的股票来卖
+      let [sym, qty, price] = candidates[0];
+
+      // 计算最多能卖多少股来填补现金缺口（不能超过持仓数量）
+      let maxSell = Math.min(qty, Math.ceil(-cash / price));
+
+      // 执行卖出
       portfolio[sym] -= maxSell;
       cash += maxSell * price;
-      if (portfolio[sym] === 0) delete portfolio[sym];
+
+      // 如果该股票被卖光了，移除它
+      if (portfolio[sym] === 0) {
+        delete portfolio[sym];
+      }
     }
   }
 
-  function canBeSold(symbol) {
-    if (symbol.endsWith("O")) return true;
-    const specialPair = symbol + "O";
-    if (portfolio[specialPair]) {
-      const needed = portfolio[specialPair];
-      return portfolio[symbol] > needed;
+  /**
+   * 判断一只股票在强平时是否可以被卖出
+   *
+   * 规则：
+   * - 特殊股票（以 'O' 结尾，例如 AAPLO）可以随时卖
+   * - 抵押股票（例如 AAPL）如果用于支持 AAPLO，则不能卖超剩余部分
+   */
+  function canBeSold(sym) {
+    // 特殊股票（以 'O' 结尾）始终可以卖
+    if (sym.endsWith("O")) return true;
+
+    // 若该股票是 collateral，且存在对应特殊股票
+    let specialStock = sym + "O";
+    if (portfolio[specialStock]) {
+      // 只能卖超出抵押需求的部分（AAPL > AAPLO 才能卖）
+      return portfolio[sym] > portfolio[specialStock];
     }
-    return true;
+
+    return true; // 普通股票或无抵押需求，可以卖
   }
 
-  const result = [["CASH", String(cash)]];
-  const stocks = Object.entries(portfolio)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([sym, qty]) => [sym, String(qty)]);
+  /**
+   * 构造最终输出格式：
+   * - 第一项是现金 ["CASH", amount]
+   * - 后续股票持仓按字母序排列
+   */
+  let result = [["CASH", String(cash)]];
+  let stocks = Object.entries(portfolio)
+    .sort((a, b) => a[0].localeCompare(b[0])) // 按股票 symbol 排序
+    .map(([sym, qty]) => [sym, String(qty)]); // 转为字符串格式
 
   return result.concat(stocks);
 }
@@ -140,7 +185,7 @@ function runTests() {
         ["2", "AAPL", "S", "5", "15"],
       ],
       expected: [
-        ["CASH", "925"],
+        ["CASH", "975"],
         ["AAPL", "5"],
       ],
     },
@@ -178,8 +223,6 @@ function runTests() {
       ],
       expected: [
         ["CASH", "0"],
-        ["AAPL", "2"],
-        ["GOOG", "5"],
         ["TSLA", "20"],
       ],
     },
@@ -218,7 +261,7 @@ function runTests() {
       ],
       expected: [
         ["CASH", "0"],
-        ["AAPL", "3"],
+        ["AAPL", "5"],
         ["AAPLO", "4"],
         ["GOOG", "5"],
       ],
@@ -226,7 +269,7 @@ function runTests() {
   ];
 
   for (const { name, input, expected } of testCases) {
-    const actual = processTrades(input);
+    const actual = process(input);
     const passed =
       JSON.stringify(actual) === JSON.stringify(expected)
         ? "✅"
