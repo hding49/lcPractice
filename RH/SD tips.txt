@@ -1,0 +1,43 @@
+Job Scheduler -
+Build a service/system that can support defining and running jobs on a schedule. Requirements:
+1. Should be able to create, schedule, and run jobs
+2. Should be able to report failures and successes
+3. At-least once task execution
+4. Should be able to view the status of running/completed jobs
+5. Should be able to handle when a job takes longer to run than expected(SLA)； 🔗 www.1point3acres.com 🔗 www.1point3acres.com 🔗 leetcode.com
+重点问了fault tolerance。比如说某个service挂了咋办。我用了MQ 有一个followup是如何来控制需要多少了consumers. 问了如何来实现auto retry如果一个job failed了, 问了如果某一个时间段 有很多jobs 需要怎么处理, 问了如果在schedule的时候需要保证high concu‍‍‌‍‌‌‌‌‌‍‌‌‌‍‍‌‍‌‌rrency 怎么处理; 不需要考虑retry的情况, 但是问了关于DB schema的细节，例如一个job可以schedule一个小时一次，如何创造一个job history table用每一行表示每一个具体的execution。当时问我job scheduler要如何自动创建recurring jobs, table schema应该是什么样的; 设计Distributed job scheduler 1. create jobs 2. schedule and run jobs 3. report failures and successes 4. reliable and have strong guarantees about its job runs 5. view logs and status of running jobs, as well as‍‍‌‍‌‌‌‌‌‍‌‌‌‍‍‌‍‌‌ previously finished jobs, job可以recurring可以是immediate，数据库其实sql nosql都可以; 1. Job增删 recurring job 2. Monitoring all jobs status 3. Notification 基本上要注意的就是problem exploration, DB schema, system compo‍‍‌‍‌‌‌‌‌‍‌‌‌‍‍‌‍‌‌nents, deep dive, edge case handling; 个人觉得和Dropbox那个架构最大的不同是要支持cronJob. 而Dropbox那个只需要支持delay execution, 准备的时候考虑一下怎么从cronTab转化成需要跑的单个job. 🔗 www.1point3acres.com 可参考https://dropbox.tech/infrastruct ... heduling-at-dropbox design一个job scheduler，可以schedule one time work 和repeated job。input是一个meta file里面有什么function需要被trigger，需要record sla，把process过久的job发notification给client告诉他们还需要再等一等。需要把process success/fail record到database里方便client queryable。
+
+
+老题 job scheduler 说说followup吧
+我用了MQ 有一个followup是如何来控制需要多少了consumers
+问了如何来实现auto retry如果一个job failed了
+问了如果某一个时间段 有很多jobs 需要怎么处理
+问了如果在schedule的时候需要保证high concurrency 怎么处理
+
+
+但我最终还是挂了，本着前人杯具，后人乘凉的原则，分享一下follow up questions
+怎么用多台机器poll jobs?
+怎么控制consumers的数量
+如果consumers执行到一半挂了怎么办？
+为什么我选择nosql，如果用sql db，一次性poll 10,000 jobs可不可以？
+如果一个job execution超时了怎么办？kill job execution？ alert user？
+假如用一个coordination service，比如zookeeper控制所有的job schedule service，用内存还是数据库存这个关系，用什么数据结构？
+怎样保证at most execution？
+
+
+以下是我的答案
+就像文章里说的用segment，每个segment只被一个job schedule service读
+consumers的数量应该根据kafka commit offset和latency进行auto scale
+没回答出来，后来研究了一下，似乎应该是 monitor consumers（with heartbeat checks and monitor consumer lag）；alerting oncall； automatic rebalance between consumers and kafka partition；automatic/manual restart of consumers； retry failed messages；
+我说应该也行，也就10,000个jobs，分10个segment感觉用relational db也没事
+我说kill job， update job execution history， alert user，不知道对不对
+我说用memory里存hashmap和linkedlist，我真不知道zookeeper用什么数据结构
+我说每次trigger job execution之前检查 job execution history status是不是scheduled
+
+
+Realtime Historical Stock Price - stock price data are from NASDAQ.
+design two API 1. get real-time price 2. get historical price
+设计一个能够查看实时股票价格和历史价格的api。后端链接两个纳斯达克tcp link获取数据，我被问了需不需要dedupe，failover的具体操作细节 .需要提供两个API, liveQuery and historical query。另一端和3rd party provider联系，接受股票的实时Update，主要是write operation, 重要的是你怎么存这个data，而且write QPS ~ 100k，所以要考虑怎么handle这个level的write。我当时说的可以用redis cluster来handle，因为write比较快。面试官倒是点头，但是不知道说的对不对; 给一个stream不断feed in数据，设计股票实时价格图表。
+
+Design stock exchange system for limit order
+重点是data model和fault tolerance;一个robinhood的交易系统。Trading Broker 🔗 www.1point3acres.com

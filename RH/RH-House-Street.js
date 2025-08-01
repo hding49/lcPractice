@@ -106,15 +106,9 @@ function fuzzyMatch(house, street) {
 function offsettingMatch(trades) {
   const map = {};
 
-  // 解析交易字符串，提取字段
-  function parseTrade(trade) {
-    const [symbol, type, qty, id] = trade.split(",");
-    return { symbol, type, qty, id };
-  }
-
   // 按symbol和quantity分组，分别保存买（B）和卖（S）交易列表
   for (const trade of trades) {
-    const { symbol, type, qty } = parseTrade(trade);
+    const [symbol, type, qty, id] = trade.split(",");
     const key = `${symbol},${qty}`;
     if (!map[key]) map[key] = { B: [], S: [] };
     map[key][type].push(trade);

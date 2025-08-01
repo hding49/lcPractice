@@ -74,6 +74,12 @@
 // ["AAPL","58"],
 //  ["GOOG","50"]]
 
+// 第一问还要求每次交易完都要记录。不能把那些交易全部弄完来个总的。虽然这两个在实现上没有区别。
+// 说起来还有个followup part2
+// 就是解决第一问以后写log，记录罗宾汉从交易所（不是客户）那里买卖的记录。
+
+// coding: fractional share, 答完后还有时间，问了followup: 需要输出 trade log, eg: if user sell 1.8 shares APPL to RH, it means two trades ["APPL", "B", "180", "USER"] + ["APPL", "S", "100", "MARKET"]
+
 function processOrders(orders, inventory) {
   // 把 inventory 转换成 Map，方便处理
   const inventoryMap = new Map();

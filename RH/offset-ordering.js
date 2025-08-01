@@ -41,7 +41,7 @@
 // [offset = 0][offset = 1][offset = 2]
 // 3). We try to commit 1, and we CAN because all messages up to 1 have been committed. We commit the offset 2. Thus, we append 2 to our result list.
 
-//                     (committed 2)    
+//                     (committed 2)
 // xxxxxxxxxx xxxxxxxxxx xxxxxxxxxx
 // [offset = 0][offset = 1][offset = 2]
 // Thus, we output [-1, 0, 2]. Remember, 1 is NOT in the output because the commit of offset 2 encapsulates it.
@@ -74,11 +74,12 @@
 
 // 否则就返回 -1
 
+// commit offset其他面经有 要求用两种方法写 space O（n）和O（1）
 
 function offsetCommits(processed) {
   const seen = new Set(); // 存储已处理过的 offset
-  const result = [];      // 最终结果数组
-  let maxCommitted = -1;  // 当前已提交的最大 offset，初始为 -1 表示还未提交
+  const result = []; // 最终结果数组
+  let maxCommitted = -1; // 当前已提交的最大 offset，初始为 -1 表示还未提交
 
   // 遍历处理顺序中的每个 offset
   for (let offset of processed) {
@@ -94,8 +95,8 @@ function offsetCommits(processed) {
 
     // 如果推进到了更高的 offset，说明可以 commit（贪心提交到最大连续 offset）
     if (next - 1 > maxCommitted) {
-      maxCommitted = next - 1;      // 更新最大提交 offset
-      result.push(maxCommitted);    // 记录此次提交的 offset
+      maxCommitted = next - 1; // 更新最大提交 offset
+      result.push(maxCommitted); // 记录此次提交的 offset
     } else {
       result.push(-1); // 否则不能提交，标记为 -1
     }
