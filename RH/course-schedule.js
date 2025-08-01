@@ -1,3 +1,8 @@
+// Given an array of pairs where each pair represents a course dependency in the form of [prerequisite, course].
+// Each pair indicates that the prerequisite course must be completed before the next course.
+// It is guaranteed that the given pairs form one continuous chain with an odd total number of courses, ensuring a single middle course exists.
+// And every course appears only once as a prerequisite (except for the starting course) and only once as a course (except for the final course).
+
 // input1 = [
 //     ["Data Structures", "Algorithms"],
 //     ["COBOL", "Networking"],
