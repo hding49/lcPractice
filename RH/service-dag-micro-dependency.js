@@ -1,5 +1,3 @@
-// Overview
-
 // You are building an application composed of multiple services, where each service may rely on one or more other services, forming a directed acyclic graph (DAG) of dependencies. One of these services serves as the entry point that receives user requests and, upon receiving a request, calls each of its dependencies. These dependencies then call their own dependencies, and so on.
 
 // The load factor of a service is defined as the number of units of load it must handle when the entry point receives 1 unit of load, assuming all upstream services issue their requests simultaneously.
@@ -54,31 +52,36 @@
 // 虽然说错runtime了，好心的国人大哥给了strong feedback
 
 function calculateLoad(service_list, entrypoint) {
-  const graph = {};
-  const loadCount = new Map();
+  const graph = {}; // 用于构建服务依赖图
+  const loadCount = new Map(); // 用于存储每个服务的负载统计
 
+  // 构建服务图，格式：service -> [dep1, dep2, ...]
   for (let line of service_list) {
-    const [service, depsStr] = line.split("=");
+    const [service, depsStr] = line.split("="); // 解析每行
     const deps = depsStr ? depsStr.split(",").filter((dep) => dep) : [];
     graph[service] = deps;
   }
 
+  // 深度优先搜索，从 entrypoint 开始，带着当前路径的请求 weight（权重）
   function dfs(service, weight) {
     if (!graph[service]) return;
 
+    // 累加当前服务的负载
     loadCount.set(service, (loadCount.get(service) || 0) + weight);
 
+    // 遍历当前服务的每个依赖，继续 DFS
     for (let dep of graph[service]) {
       if (graph.hasOwnProperty(dep)) {
-        dfs(dep, weight);
+        // 忽略未定义的依赖（如 foobar）
+        dfs(dep, weight); // 同步请求，传递相同 weight
       }
     }
   }
 
-  // Entrypoint starts with weight 1
+  // 从入口服务开始，初始 weight 是 1
   dfs(entrypoint, 1);
 
-  // Format output
+  // 格式化输出结果：service*load，按服务名字母序排列
   const result = [];
   for (let [service, count] of loadCount.entries()) {
     result.push(`${service}*${count}`);
