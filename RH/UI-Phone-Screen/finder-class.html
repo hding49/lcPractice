@@ -1,0 +1,207 @@
+<!-- // 第一问是让你implement 一个finder class，find(idx)是找到对应的方块，color(newColor)是让你给之前找到的方块上色，然后implement一个shift()就是让你把方块往下移动一点位置。
+// 第二问是通过chain但是这次是要给方块加callback, 给的实例是console.log但是要注意拓展性，支持pass in event target
+// 接下来的followup是implement一个delay，使得下次color会被delay，但是不影响下下次，然后还有一个followup是afterDelay,让你invoke一个callback，会在上次被delay过后立即invoke
+// 所有的function都要chainnable
+
+// 题目是给一个九宫格（html + css已写好，且不允许改），用pure javascript写一个Finder class，
+// class需要有几个methond：find, color和shiftdown，find是要可以找到九宫格里的具体的格子，color是给格子改色，shiftdown是改格子的位置。
+
+// 做出来以后还有followup，第二问是让输出被click的格子。
+
+// 就是所有的都要chain
+// 比如 `myClass.query("id").color("blue").onclick((color) => console.log(color).query("id2"). ....`
+// 这样，就必须都得work并且attach到正确的block上
+
+
+// HTML 和 CSS（九宫格，不可修改）
+
+// Finder class 初始骨架
+
+// Chainable API（find(idx), color(color), shiftDown(), on(event, callback), delay(ms), afterDelay(callback)） -->
+
+<!-- 给了一堆方块，实现以下几个funcitons
+1. find：选中某个方块
+2. color：给选中的方块上色
+3. downshift：使选中的方块下移
+
+Followup：1. 点击方块显示东西 2. 给 color 加延时 -->
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      #grid {
+        display: grid;
+        grid-template-columns: repeat(3, 100px);
+        grid-template-rows: repeat(3, 100px);
+        gap: 5px;
+      }
+      .cell {
+        background-color: lightgray;
+        border: 1px solid #ccc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="grid">
+      <div class="cell" data-idx="0">0</div>
+      <div class="cell" data-idx="1">1</div>
+      <div class="cell" data-idx="2">2</div>
+      <div class="cell" data-idx="3">3</div>
+      <div class="cell" data-idx="4">4</div>
+      <div class="cell" data-idx="5">5</div>
+      <div class="cell" data-idx="6">6</div>
+      <div class="cell" data-idx="7">7</div>
+      <div class="cell" data-idx="8">8</div>
+    </div>
+
+    <script>
+      class Finder {
+        constructor() {
+          this.current = null;
+          this._delay = 0;
+          this._afterDelayCallback = null;
+        }
+
+        find(idx) {
+          this.current = document.querySelector(`.cell[data-idx="${idx}"]`);
+          return this;
+        }
+
+        color(newColor) {
+          const applyColor = () => {
+            if (this.current) {
+              this.current.style.backgroundColor = newColor;
+            }
+            if (this._afterDelayCallback) {
+              this._afterDelayCallback();
+              this._afterDelayCallback = null;
+            }
+          };
+
+          if (this._delay > 0) {
+            setTimeout(() => {
+              applyColor();
+            }, this._delay);
+            this._delay = 0;
+          } else {
+            applyColor();
+          }
+
+          return this;
+        }
+
+        shiftDown() {
+          if (this.current) {
+            const currentTop = parseInt(this.current.style.marginTop || 0, 10);
+            this.current.style.marginTop = currentTop + 10 + "px";
+          }
+          return this;
+        }
+
+        on(event, callback) {
+          if (this.current) {
+            this.current.addEventListener(event, () => {
+              callback(this.current);
+            });
+          }
+          return this;
+        }
+
+        delay(ms) {
+          this._delay = ms;
+          return this;
+        }
+
+        afterDelay(callback) {
+          this._afterDelayCallback = callback;
+          return this;
+        }
+      }
+
+      // Example usage:
+      const finder = new Finder();
+      finder
+        .find(4)
+        .color("blue")
+        .shiftDown()
+        .delay(1000)
+        .color("green")
+        .afterDelay(() => console.log("Changed to green"))
+        .find(7)
+        .on("click", (el) => console.log("You clicked cell:", el.dataset.idx));
+    </script>
+  </body>
+</html>
+
+<!-- ✅ .find(idx) 选中九宫格的某个格子
+
+✅ .color(color) 修改格子的背景色
+
+✅ .shiftDown() 给格子加 marginTop 模拟移动
+
+✅ .on('click', cb) 注册事件监听器（如点击）
+
+✅ .delay(ms) 延迟下一次 .color() 执行
+
+✅ .afterDelay(cb) 注册在 .color() 延迟完成后立即执行的回调
+
+✅ 所有方法都可以链式调用（chainable） -->
+
+<!-- ✅ 第一问：实现 Finder 类的基本功能
+已知条件：
+网页里有一个 九宫格（3x3），用 HTML + CSS 写好，不可更改。
+
+每个格子有唯一 ID，比如 "cell-0" 到 "cell-8"。
+
+你只能用 pure JavaScript 来完成逻辑实现。
+
+要求实现的功能：
+你需要创建一个 Finder 类，具备以下方法： -->
+
+<!-- class Finder {
+  find(id) {}           // 通过 id 找到九宫格里的格子
+  color(newColor) {}    // 将上一步选中的格子背景色设置为 newColor
+  shiftdown() {}        // 将格子“向下”移动，即 y 轴坐标 + 常量（比如 10px）
+}
+
+const f = new Finder();
+f.find("cell-1").color("red").shiftdown();
+
+
+find("cell-1") 选中格子
+
+.color("red") 把这个格子背景变红
+
+.shiftdown() 将这个格子的位置往下移动一点（例如用 style.transform = translateY(...)） -->
+
+<!-- ✅ 第二问：支持点击、回调、链式调用
+在第一问的基础上，增加以下 链式功能：
+
+新增功能点：
+
+.on(eventType, callback)
+
+注册事件回调，例如点击：
+
+f.find("cell-2").on("click", () => console.log("clicked!"));
+
+.delay(ms)
+
+延迟执行下一个链式操作，例如：
+
+f.find("cell-1").delay(1000).color("blue")
+
+
+.afterDelay(callback)
+
+注册一个回调，在 .delay() 指定的时间执行完后立刻触发：
+
+
+f.find("cell-1").delay(1000).afterDelay(() => console.log("done!")).color("blue")
+
+
+所有方法都必须支持链式调用（fluent interface）。 -->
