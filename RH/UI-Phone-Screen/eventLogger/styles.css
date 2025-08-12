@@ -1,0 +1,16 @@
+/* DO NOT EDIT */
+body {
+  font-family: sans-serif;
+}
+
+#grid {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.square {
+  width: 100px;
+  height: 100px;
+  cursor: pointer;
+}
