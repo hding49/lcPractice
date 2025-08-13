@@ -92,10 +92,10 @@ class MyPromise {
       this.state = "fulfilled";
       this.value = value;
 
-      // 异步执行所有成功回调
-      setTimeout(() => {
+      // 微任务执行所有成功回调
+      Promise.resolve().then(() => {
         this.onFulfilledCallbacks.forEach((fn) => fn(this.value));
-      }, 0);
+      });
     };
 
     const reject = (reason) => {
@@ -104,10 +104,10 @@ class MyPromise {
       this.state = "rejected";
       this.reason = reason;
 
-      // 异步执行所有失败回调
-      setTimeout(() => {
+      // 微任务执行所有失败回调
+      Promise.resolve().then(() => {
         this.onRejectedCallbacks.forEach((fn) => fn(this.reason));
-      }, 0);
+      });
     };
 
     // 立即执行 executor，捕获异常自动 reject
@@ -131,45 +131,45 @@ class MyPromise {
     // then 返回一个新的 Promise，支持链式调用
     const promise2 = new MyPromise((resolve, reject) => {
       if (this.state === "fulfilled") {
-        setTimeout(() => {
+        Promise.resolve().then(() => {
           try {
             const x = onFulfilled(this.value);
             resolvePromise(promise2, x, resolve, reject);
           } catch (e) {
             reject(e);
           }
-        }, 0);
+        });
       } else if (this.state === "rejected") {
-        setTimeout(() => {
+        Promise.resolve().then(() => {
           try {
             const x = onRejected(this.reason);
             resolvePromise(promise2, x, resolve, reject);
           } catch (e) {
             reject(e);
           }
-        }, 0);
+        });
       } else if (this.state === "pending") {
         // 状态为 pending 时，将回调保存，状态改变后再执行
         this.onFulfilledCallbacks.push(() => {
-          setTimeout(() => {
+          Promise.resolve().then(() => {
             try {
               const x = onFulfilled(this.value);
               resolvePromise(promise2, x, resolve, reject);
             } catch (e) {
               reject(e);
             }
-          }, 0);
+          });
         });
 
         this.onRejectedCallbacks.push(() => {
-          setTimeout(() => {
+          Promise.resolve().then(() => {
             try {
               const x = onRejected(this.reason);
               resolvePromise(promise2, x, resolve, reject);
             } catch (e) {
               reject(e);
             }
-          }, 0);
+          });
         });
       }
     });
