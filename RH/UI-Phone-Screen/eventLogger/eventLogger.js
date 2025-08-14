@@ -24,15 +24,15 @@ export class EventLogger {
     this.isUploading = false;
     this.uploadQueue = [];
 
-    // Part 4 - 超时控制和 abort controller
-    this.currentAbortController = null;
+    // Part 4 - 当前请求 & 超时控制
+    this.currentRequest = null;
+    this.requestTimeout = 3000; // 3秒超时
 
     this.startBatchUpload();
   }
 
   // ---------------- Part 1 ----------------
-  // Part 1: 每次点击立即上传
-  // 但 Part 2 开启后，logEvent 改为入队，不立即上传
+  // 每次点击 → Part 1 直接上传，Part 2+ 改为入队
   logEvent(eventName, data) {
     const event = {
       eventName,
@@ -41,27 +41,26 @@ export class EventLogger {
       data: data.data,
     };
 
-    // Part 2+ 后，改为入队等待批量上传
+    // Part 2+ 改为入队等待批量上传
     this.eventQueue.push(event);
   }
 
-  // Part 2 - 定时批量上传
+  // ---------------- Part 2 ----------------
   startBatchUpload() {
-    if (this.timerId) return; // 防止多次调用
+    if (this.timerId) return; // 防止重复启动
 
     this.timerId = setInterval(() => {
       if (this.eventQueue.length === 0) return;
 
-      // 取出当前批次的事件
       const batch = this.eventQueue;
       this.eventQueue = [];
 
-      // 加入上传队列，保证串行上传（Part 3）
+      // Part 3 - 串行上传
       this.enqueueUpload(batch);
     }, this.uploadInterval);
   }
 
-  // Part 3 - 上传队列串行执行
+  // ---------------- Part 3 ----------------
   enqueueUpload(batch) {
     return new Promise((resolve, reject) => {
       this.uploadQueue.push({ batch, resolve, reject });
@@ -70,7 +69,7 @@ export class EventLogger {
   }
 
   async processQueue() {
-    if (this.isUploading) return; // 已经有上传任务，等待完成
+    if (this.isUploading) return; // 正在上传中
 
     if (this.uploadQueue.length === 0) return;
 
@@ -86,48 +85,37 @@ export class EventLogger {
     }
 
     this.isUploading = false;
-
-    // 上传完成后，继续处理队列
-    this.processQueue();
+    this.processQueue(); // 继续下一个
   }
 
-  // Part 4 - 超时取消和合并重试
+  // ---------------- Part 4 ----------------
   async uploadBatchWithTimeout(batch) {
-    // 创建 AbortController 用于取消请求
-    this.currentAbortController = new AbortController();
-    const { signal } = this.currentAbortController;
+    // 如果有请求在飞，先中断
+    if (this.currentRequest) {
+      this.currentRequest.abort();
+      this.currentRequest = null;
+    }
 
-    // 超时设置 3秒
+    const requestPromise = sendRequest({ events: batch });
+    this.currentRequest = requestPromise;
+
+    // 超时控制
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => {
-        // 超时，abort 请求
-        if (this.currentAbortController) {
-          //在调用 abort() 前检查对象是否存在
-          this.currentAbortController.abort();
+        if (this.currentRequest === requestPromise) {
+          requestPromise.abort();
+          // 把事件放回队列
+          this.eventQueue = batch.concat(this.eventQueue);
           reject(new Error("Upload timeout"));
         }
-      }, 3000);
+      }, this.requestTimeout);
     });
 
-    // 发起上传请求
-    const uploadPromise = sendRequest({ events: batch }, { signal });
-
     try {
-      // Promise.race：哪个先完成，返回哪个
-      await Promise.race([uploadPromise, timeoutPromise]);
-      this.currentAbortController = null;
-    } catch (err) {
-      if (err.message === "Upload timeout") {
-        // Part 4 - 超时合并处理
-        // 把本次失败 batch 放回事件队列，并合并下一批事件再上传
-        this.eventQueue = batch.concat(this.eventQueue);
-        // 这里拒绝当前上传，下一轮 setInterval 会重新上传
-        throw err;
-      } else if (err.name === "AbortError") {
-        // 请求被中止，也抛错让外层处理
-        throw err;
-      } else {
-        throw err;
+      await Promise.race([requestPromise, timeoutPromise]);
+    } finally {
+      if (this.currentRequest === requestPromise) {
+        this.currentRequest = null;
       }
     }
   }
