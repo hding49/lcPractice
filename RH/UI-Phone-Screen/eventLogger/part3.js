@@ -52,7 +52,7 @@ export class EventLogger {
     this.isUploading = true;
 
     try {
-      await this.uploadBatch(batch);
+      await sendRequest({ events: batch });
       resolve();
     } catch (error) {
       reject(error);
@@ -60,10 +60,6 @@ export class EventLogger {
 
     this.isUploading = false;
     this.processQueue();
-  }
-
-  uploadBatch(batch) {
-    return sendRequest({ events: batch });
   }
 }
 
