@@ -42,6 +42,7 @@ Followup：1. 点击方块显示东西 2. 给 color 加延时 -->
         display: flex;
         align-items: center;
         justify-content: center;
+        transition: all 0.3s; /* 平滑动画 */
       }
     </style>
   </head>
@@ -63,7 +64,8 @@ Followup：1. 点击方块显示东西 2. 给 color 加延时 -->
         constructor() {
           this.current = null;
           this._delay = 0;
-          this._afterDelayCallback = null;
+          this._afterDelayQueue = [];
+          this.shiftStep = 20; // 每次下移像素
         }
 
         find(idx) {
@@ -72,20 +74,15 @@ Followup：1. 点击方块显示东西 2. 给 color 加延时 -->
         }
 
         color(newColor) {
+          const target = this.current; // 保存当前元素
           const applyColor = () => {
-            if (this.current) {
-              this.current.style.backgroundColor = newColor;
-            }
-            if (this._afterDelayCallback) {
-              this._afterDelayCallback();
-              this._afterDelayCallback = null;
-            }
+            if (target) target.style.backgroundColor = newColor;
+            this._afterDelayQueue.forEach((cb) => cb());
+            this._afterDelayQueue = [];
           };
 
           if (this._delay > 0) {
-            setTimeout(() => {
-              applyColor();
-            }, this._delay);
+            setTimeout(() => applyColor(), this._delay);
             this._delay = 0;
           } else {
             applyColor();
@@ -95,18 +92,26 @@ Followup：1. 点击方块显示东西 2. 给 color 加延时 -->
         }
 
         shiftDown() {
-          if (this.current) {
-            const currentTop = parseInt(this.current.style.marginTop || 0, 10);
-            this.current.style.marginTop = currentTop + 10 + "px";
-          }
+          if (!this.current) return this;
+
+          // 获取已有 transform 的 translateY 值
+          const prev = this.current.style.transform.match(
+            /translateY\(([-\d.]+)px\)/
+          );
+          const prevValue = prev ? parseFloat(prev[1]) : 0;
+
+          // 累加平移
+          this.current.style.transform = `translateY(${
+            prevValue + this.shiftStep
+          }px)`;
+
           return this;
         }
 
         on(event, callback) {
           if (this.current) {
-            this.current.addEventListener(event, () => {
-              callback(this.current);
-            });
+            const el = this.current; // 捕获当时的元素
+            el.addEventListener(event, (e) => callback(e, el));
           }
           return this;
         }
@@ -117,22 +122,28 @@ Followup：1. 点击方块显示东西 2. 给 color 加延时 -->
         }
 
         afterDelay(callback) {
-          this._afterDelayCallback = callback;
+          if (callback) this._afterDelayQueue.push(callback);
           return this;
         }
       }
 
-      // Example usage:
+      // 使用示例
       const finder = new Finder();
+
       finder
         .find(4)
+        .on("click", (e, el) =>
+          console.log("You clicked cell:", el.dataset.idx)
+        )
         .color("blue")
         .shiftDown()
-        .delay(1000)
+        .delay(3000)
         .color("green")
-        .afterDelay(() => console.log("Changed to green"))
+        .afterDelay(() => console.log("Cell 4 changed to green"))
         .find(7)
-        .on("click", (el) => console.log("You clicked cell:", el.dataset.idx));
+        .on("click", (e, el) =>
+          console.log("You clicked cell:", el.dataset.idx)
+        );
     </script>
   </body>
 </html>

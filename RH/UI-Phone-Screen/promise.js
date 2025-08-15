@@ -177,6 +177,23 @@ class MyPromise {
     return promise2;
   }
 
+  catch(onRejected) {
+    return this.then(null, onRejected);
+  }
+
+  finally(onFinally) {
+    return this.then(
+      (value) => {
+        return MyPromise.resolve(onFinally()).then(() => value);
+      },
+      (reason) => {
+        return MyPromise.resolve(onFinally()).then(() => {
+          throw reason;
+        });
+      }
+    );
+  }
+
   // 实现静态方法 Promise.all
   static all(promises) {
     return new MyPromise((resolve, reject) => {
