@@ -56,7 +56,16 @@ export class EventLogger {
       this.eventQueue = [];
 
       // Part 3 - 串行上传
-      this.enqueueUpload(batch);
+      sendRequest({ events: batch })
+        .then(() => {
+          // 上传成功，可以写日志或其它操作
+          console.log("Batch uploaded successfully");
+        })
+        .catch((err) => {
+          // 上传失败，可以重试、记录日志或把事件放回队列
+          console.error("Batch upload failed:", err);
+          this.eventQueue = batch.concat(this.eventQueue); // 失败时放回队列
+        });
     }, this.uploadInterval);
   }
 
