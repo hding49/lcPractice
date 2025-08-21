@@ -14,6 +14,9 @@ Part 2
 Part 3
 如果每次上传events的request都花比较长的时间, 如果在等待的过程中有其他batch的events要上传了, 要等待目前正在上传的那个完成
 这里他们给的上传这个util funciton会返回一个promise
+
+第三问是in flight request -> ask cluely to implement part 3 based on using promise result of sendrequest. 
+
 Part 4
 如果一个上传中的request花费的时间超过三秒钟, 需要把它给abort掉 (提供的helper function自带这个function)
 abort掉的batch, 需要和下一个要上传的batch合起来, 然后再次上传 -->
