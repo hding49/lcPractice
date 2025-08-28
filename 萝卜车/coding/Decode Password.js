@@ -1,47 +1,26 @@
-// For this challenge, you will need to parse data from STDIN to find a character in a matrix.
-// Below is an example of the input you will receive from STDIN:
+// 第一问
 
-// [2, 4]
-// AFLOW
-// BGLOW
-// COSMW
-// DENSX
+// 输入：第一行是坐标 [x,y]，后面是一个字符矩阵（从上到下）。
 
-// The first line is the [X, Y] coordinates of the character in the matrix (0,0 is the bottom left character).
-// The remaining lines contain a matrix of random characters, with a character located at the coordinates from line 1.
-// So, in the example above, we’re looking for a character at the coordinates [2,4].
-// Moving right X spaces, and up Y, we find the character S. X is the character.
+// 要求：原点 (0,0) 在左下角，返回矩阵中该坐标对应的字符。
 
-// Please write a program that reads from STDIN and prints the result to STDOUT.
-// Use the Run Tests button to check your solution against the test cases.
+// 第二问
 
-// This challenge builds off of the previous one. The matrix follows the (x,y) system from the previous one.
+// 输入：由多个 chunk 组成。
 
-// For this challenge, the goal is to construct a password from a series of chunks.
-// The chunks will now look like:
+// 每个 chunk 第一行是字符在密码中的索引（0-based）。
 
-// 1
-// [3, 4]
-// SOMETHING
-// UMFJZOWE
-// VALDKDMS
-// ZANDOWSD
-// WONDOROW
-// 2
-// [0, 3]
-// MLFOWSD
+// 第二行是坐标 [x,y]。
 
-// You will notice each chunk looks similar to the previous challenge with one addition —
-// the first line is the (0-based) index of the password character.
+// 后续是矩阵。
 
-// In our example:
-// - First chunk positioned character index 1. Character at [3,4] is 'I'.
-// - Second chunk positioned character index 2. Character at [0,3] is 'M'.
+// 要求：从每个 chunk 提取字符，按索引顺序拼接成一个完整密码。
 
-// So the password is "IM".
+// 第三问
 
-// Once you have processed all of the chunks you should print the password
-// and you should process STDIN.
+// 输入：包含多个密码，每个密码由一组 chunk 构成，用 空行分隔。
+
+// 要求：对每组 chunk 执行第二问的逻辑，拼成一个密码，输出所有密码。
 
 const fs = require("fs");
 
@@ -66,27 +45,96 @@ function solution1(path) {
 
 function solution2(path) {
   const text = fs.readFileSync(path, "utf8").replace(/^\uFEFF/, "");
-  const lines = text.split(/\r?\n/); // 不过滤空行，解析时跳过
-  const isIndexLine = (s) => /^\d+$/.test(s.trim()); // 纯数字行 = 新块 index
+  const lines = text.split(/\r?\n/); // CHANGED from Q1: 不过滤空行，保留原始行序
+  const isIndexLine = (s) => /^\d+$/.test(s.trim()); // NEW in Q2: 识别“纯数字行”= 新块 index
 
-  const map = new Map(); // index -> char
-  let i = 0;
+  const map = new Map(); // NEW in Q2: index -> char 的映射，用来存储密码中各个位置的字符
+  let i = 0; // NEW in Q2: 行游标，逐行扫描文件内容
 
   while (i < lines.length) {
-    // 跳过空行
-    while (i < lines.length && lines[i].trim() === "") i++;
-    if (i >= lines.length) break;
+    // NEW in Q2: 主循环读取每个 chunk
+    while (i < lines.length && lines[i].trim() === "") i++; // NEW in Q2: 跳过 chunk 间空行
+    if (i >= lines.length) break; // NEW in Q2: 如果到达文件结尾则退出循环
 
-    // 1) 读取 index
+    if (!isIndexLine(lines[i])) break; // NEW in Q2: 非法格式保守退出（当前行不是 index）
+    const idx = parseInt(lines[i].trim(), 10); // NEW in Q2: 读取 index，表示该字符在密码中的位置
+    i++; // NEW in Q2: 游标移到下一行（坐标行）
+
+    const [x, y] = lines[i].slice(1, -1).split(/,\s*/).map(Number); // CHANGED from Q1: 坐标来自当前 chunk 的第二行
+    i++; // NEW in Q2: 游标移到矩阵行
+
+    const board = []; // NEW in Q2: 收集当前 chunk 的矩阵行
+    while (
+      i < lines.length &&
+      !isIndexLine(lines[i]) &&
+      lines[i].trim() !== ""
+    ) {
+      board.push(lines[i]); // NEW in Q2: 将矩阵行加入数组（按 top->bottom 顺序）
+      i++; // NEW in Q2: 游标继续向下
+    }
+    while (i < lines.length && lines[i].trim() === "") i++; // NEW in Q2: 跳过矩阵后的空行
+
+    const row = board.length - 1 - y; // CHANGED from Q1: 由于原点在左下，需要翻转行索引
+    map.set(idx, board[row][x]); // NEW in Q2: 把提取出的字符存入对应的 index 位置
+  }
+
+  if (map.size === 0) return ""; // NEW in Q2: 如果没有任何块，直接返回空字符串
+  const maxIndex = Math.max(...map.keys()); // NEW in Q2: 找出密码的最大索引位置
+  let out = ""; // NEW in Q2: 用于拼接结果字符串
+  for (let k = 0; k <= maxIndex; k++) {
+    // NEW in Q2: 依次拼接 0..maxIndex 的字符
+    if (!map.has(k)) return ""; // NEW in Q2: 如果缺少某个索引，密码不完整，返回空串
+    out += map.get(k); // NEW in Q2: 否则将字符追加到结果中
+  }
+  return out; // CHANGED from Q1: 返回拼好的完整密码
+}
+
+function solution3(path) {
+  const text = fs.readFileSync(path, "utf8").replace(/^\uFEFF/, "");
+  const lines = text.split(/\r?\n/);
+  const isIndexLine = (s) => /^\d+$/.test((s ?? "").trim());
+
+  // 组装并校验 index 必须 0..max 连续
+  function assemble(map) {
+    if (map.size === 0) return "";
+    const max = Math.max(...map.keys());
+    for (let k = 0; k <= max; k++) if (!map.has(k)) return "";
+    let s = "";
+    for (let k = 0; k <= max; k++) s += map.get(k);
+    return s;
+  }
+
+  const passwords = [];
+  let i = 0;
+  let curr = new Map(); // 当前密码的 index -> char
+
+  const flushCurrent = () => {
+    const pwd = assemble(curr);
+    if (pwd) passwords.push(pwd);
+    curr = new Map();
+  };
+
+  while (i < lines.length) {
+    // 跳过前导空行（也作为分隔符）
+    if (lines[i].trim() === "") {
+      // 遇到分隔空行：结束一个密码
+      flushCurrent();
+      // 连续空行都跳过
+      while (i < lines.length && lines[i].trim() === "") i++;
+      continue;
+    }
+
+    // 读取一个 chunk
     if (!isIndexLine(lines[i])) break;
     const idx = parseInt(lines[i].trim(), 10);
     i++;
 
-    // 2) 读取坐标 [x, y]
-    const [x, y] = lines[i].slice(1, -1).split(/,\s*/).map(Number);
+    if (i >= lines.length) break;
+    const coordRaw = lines[i].trim();
+    const [x, y] = coordRaw.slice(1, -1).split(/,\s*/).map(Number);
     i++;
 
-    // 3) 读取矩阵（直到下一 index / 空行 / EOF）
+    // 读取矩阵直到下一 index / 空行 / EOF
     const board = [];
     while (
       i < lines.length &&
@@ -97,118 +145,86 @@ function solution2(path) {
       i++;
     }
 
-    // 跳过矩阵后的空行（若有）
-    while (i < lines.length && lines[i].trim() === "") i++;
-
-    // 4) 取字符并记录
-    const row = board.length - 1 - y;
-    map.set(idx, board[row][x]);
+    // 越界保护并取字符（原点在左下，需要翻转行号）
+    const H = board.length;
+    const row = H - 1 - y;
+    const ch =
+      H > 0 && row >= 0 && row < H && x >= 0 && x < (board[row]?.length ?? 0)
+        ? board[row][x]
+        : "";
+    if (ch !== "") curr.set(idx, ch);
   }
 
-  // 组装密码（要求 0..maxIndex 连续存在）
-  if (map.size === 0) return "";
-  const maxIndex = Math.max(...map.keys());
-  let out = "";
-  for (let k = 0; k <= maxIndex; k++) {
-    if (!map.has(k)) return ""; // 缺位则按空串处理（也可按题目需要调整）
-    out += map.get(k);
-  }
-  return out;
-}
+  // 文件末尾可能没有空行收尾
+  if (curr.size > 0) flushCurrent();
 
-function solution3(path) {
-  // 读取文件，并去掉可能存在的 BOM 头
-  const text = fs.readFileSync(path, "utf8").replace(/^\uFEFF/, "");
-  // 按行拆分（兼容 \n 和 \r\n）
-  const lines = text.split(/\r?\n/);
-
-  // 判断一行是否是纯数字（表示 index 行）
-  const isIndexLine = (s) => /^\d+$/.test(s.trim());
-
-  /**
-   * assemble(map): 尝试将一个密码的所有 chunk 拼接成完整字符串
-   * map: index -> char
-   * 规则：
-   *   - index 必须从 0 到 maxIndex 连续存在，否则返回空串
-   *   - 返回拼接好的字符串
-   */
-  function assemble(map) {
-    if (map.size === 0) return "";
-    const max = Math.max(...map.keys());
-    for (let k = 0; k <= max; k++) if (!map.has(k)) return "";
-    let s = "";
-    for (let k = 0; k <= max; k++) s += map.get(k);
-    return s;
-  }
-
-  const passwords = []; // 存放所有解析出的密码
-  let i = 0; // 当前行号指针
-  let curr = new Map(); // 当前正在解析的密码（index -> char）
-
-  while (i < lines.length) {
-    // 跳过前导空行
-    while (i < lines.length && lines[i].trim() === "") i++;
-    if (i >= lines.length) break;
-
-    // ===== 开始读取一个密码的所有 chunk =====
-    while (i < lines.length && lines[i].trim() !== "") {
-      // 1) 读取 index 行
-      if (!isIndexLine(lines[i])) {
-        // 如果不是纯数字，说明输入格式不对，跳出当前密码解析
-        break;
-      }
-      const idx = parseInt(lines[i].trim(), 10);
-      i++;
-
-      // 2) 读取坐标 [x, y]
-      const coord = lines[i]?.trim() || "";
-      const [x, y] = coord.slice(1, -1).split(/,\s*/).map(Number);
-      i++;
-
-      // 3) 读取矩阵行（直到遇到下一 index 或空行或文件结尾）
-      const board = [];
-      while (
-        i < lines.length &&
-        !isIndexLine(lines[i]) && // 不能是新的 index 行
-        lines[i].trim() !== "" // 不能是空行
-      ) {
-        board.push(lines[i]);
-        i++;
-      }
-
-      // 4) 根据 [x,y] 从矩阵里取字符
-      const H = board.length; // 矩阵高度
-      const row = H - 1 - y; // (0,0) 在左下，所以要翻转行号
-      if (
-        H > 0 &&
-        row >= 0 &&
-        row < H &&
-        x >= 0 &&
-        x < (board[row]?.length ?? 0)
-      ) {
-        // 坐标合法 → 存到 curr map
-        curr.set(idx, board[row][x]);
-      } else {
-        // 越界或非法 → 存一个空字符串（让 assemble 失败）
-        curr.set(idx, "");
-      }
-    }
-
-    // 当前密码的 chunk 读取完毕（因为遇到空行或异常）
-    const pwd = assemble(curr);
-    if (pwd) passwords.push(pwd); // 如果完整，收集起来
-    curr = new Map(); // 重置 map，准备下一组密码
-
-    // 跳过分隔的空行
-    while (i < lines.length && lines[i].trim() === "") i++;
-  }
-
-  // 文件末尾如果还有一个密码没收集（例如最后没有空行）
-  if (curr.size > 0) {
-    const pwd = assemble(curr);
-    if (pwd) passwords.push(pwd);
-  }
-
-  // 返回所有密码（多密码时一行一个）
+  // 多密码：一行一个返回（若题目要求别的格式可改）
   return passwords.join("\n");
 }
+
+// ① 第一问（solution1）
+
+// Time 时间复杂度
+
+// EN: O(N) where N is the total size of the input (reading file + splitting lines). The actual lookup of the target cell is O(1).
+
+// ZH: O(N)，其中 N 为输入总大小（读文件与分行）。实际取目标字符是 O(1)。
+
+// Space 空间复杂度
+
+// EN: O(N) to hold the lines/board in memory. Extra/auxiliary space beyond the parsed input is O(1).
+
+// ZH: O(N)（存放整份输入的行与矩阵）。除输入存储外的额外空间为 O(1)。
+
+// Interview blurb（面试可说）
+
+// EN: “We read and split the whole input once—so time is linear in input size, O(N). The actual index calculation and access are O(1).
+// Space is O(N) for the parsed lines; auxiliary space is constant.”
+
+// ZH: “整体读入并分行一次，所以时间是 O(N)；定位与访问是 O(1)。空间为存输入的 O(N)，额外空间 O(1)。”
+
+// ② 第二问（solution2：单个密码、多个 chunk）
+
+// Time 时间复杂度
+
+// EN: O(N + P) where N is total input size and P is the password length (max index + 1).
+// We linearly scan lines, parse each chunk, and do one pass to assemble the password ⇒ effectively O(N).
+
+// ZH: O(N + P)，N 为输入总大小，P 为密码长度（最大索引+1）。逐行线性扫描并解析 chunk，最后拼一次密码，本质上近似 O(N)。
+
+// Space 空间复杂度
+
+// EN: O(N) to store all lines; auxiliary peak is O(B + P) where B is the size of the largest matrix chunk we hold at once,
+// and P is the size of the index→char map. Since we discard each board after use, peak is dominated by the largest board.
+
+// ZH: O(N)（保存所有行）；额外峰值为 O(B + P)，其中 B 是单个最大矩阵块的大小、P 是索引映射大小。矩阵按块处理，用完即丢，峰值由最大块决定。
+
+// Interview blurb（面试可说）
+
+// EN: “Single pass over the input to parse chunks, plus one pass to assemble 0..maxIndex: time O(N + P) ≈ O(N).
+// Memory is O(N) for the loaded input; extra peak O(B + P) due to the largest board held and the index map.”
+
+// ZH: “线性扫描解析各个 chunk，最后按 0..maxIndex 拼接：时间 O(N + P)，近似 O(N)；内存 O(N) 存输入，额外峰值 O(B + P)（最大矩阵块 + 索引映射）。”
+
+// ③ 第三问（solution3：多个密码，空行分组）
+
+// Time 时间复杂度
+
+// EN: O(N + ΣP_i) where N is total input size and P_i are lengths of each password.
+// We linearly parse all chunks across groups and assemble per group. Since ΣP_i ≤ N in typical settings, this is effectively O(N).
+
+// ZH: O(N + ΣP_i)，N 为输入总大小，P_i 为各密码长度之和。按组线性解析并组装，一般情况下 ΣP_i 不超过输入规模，整体近似 O(N)。
+
+// Space 空间复杂度
+
+// EN: O(N) to store input lines; auxiliary peak is O(B_max + P_max) during parsing (largest board + current index map).
+// Final output stores all passwords: O(ΣP_i).
+
+// ZH: O(N)（存输入）；解析时的额外峰值为 O(B_max + P_max)（最大矩阵块 + 当前密码映射）。最终结果需要 O(ΣP_i) 存所有密码。
+
+// Interview blurb（面试可说）
+
+// EN: “We scan the whole file once, splitting by blank lines into password groups. Time is O(N + ΣP_i) ≈ O(N).
+// Memory is O(N) for input; extra peak O(B_max + P_max) while parsing, and O(ΣP_i) to hold the resulting passwords.”
+
+// ZH: “整份文件线性扫描、以空行分组。时间 O(N + ΣP_i)，约等于 O(N)；空间 O(N) 存输入，解析时峰值 O(B_max + P_max)，并用 O(ΣP_i) 存放所有输出密码。”

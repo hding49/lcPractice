@@ -1,190 +1,183 @@
-# A retail analytics platform stores order records in a data warehouse, with each record represented as a list of strings. The first row contains column headers, while all subsequent rows are order records with each value as a string. Every record includes at least these columns: order_id, cost, sell_price, product, and date (formatted as "YYYY-MM-DD"). Additional columns (e.g., state) may also be present.
 
-# Your task is to simulate the creation of a pivot table that computes the net profit (sell_price minus cost) for each unique value in a specified column (pivotColumn), using only orders on or after a given start date (startDate). The pivotColumn can be "state", "product", or any other column.
+# 第一问
 
-# Implement the DataWarehouse class:
+# 中文：给你一张表，要求计算整张表的 sell_price 总和。
+# English: Given a table, calculate the total sum of the sell_price column.
 
-# DataWarehouse(List<List<String>> data) Initializes the data warehouse with the provided dataset. The first row is the header and the rest are data rows.
+# 第二问
 
-# String getMostProfitable(String pivotColumn, String startDate) Considers only records where date is on or after startDate. Finds the value in the pivot column with the highest total net profit.
+# 中文：指定一个列名，比如 state 或 product，要求按照这个列分组，统计每组的 sell_price 总和，生成一个 pivot table。
+# English: Given a column name, like state or product, group by that column and compute the total sell_price for each group, essentially building a pivot table.
 
-# In case of a tie, returns the lexicographically smallest value.
-# If no records match, returns "".
-# Constraints:
+# 第三问
 
-# The table data contains at least one row (the header).
-# Each row has the same length as the header.
-# All values are non-null strings.
-# Dates are in "YYYY-MM-DD" format.
-# 1 ≤ data.size() ≤
-# 10
-# 5
-# 10
-# 5
-
-# 1 ≤ data[0].size() ≤ 20
-# Example:
-
-# Input:
-# ["DataWarehouse", "getMostProfitable", "getMostProfitable", "getMostProfitable"]
-
-# [[["order_id", "cost", "sell_price", "product", "date", "state"], ["23", "12", "18", "cheese", "2023-12-04", "CA"], ["24", "5", "12", "melon", "2023-12-04", "OR"], ["25", "25", "31", "cheese", "2023-12-05", "OR"], ["26", "4", "12", "bread", "2023-12-05", "CA"], ["25", "10", "14", "cheese", "2023-12-06", "CA"], ["26", "5", "6", "bread", "2023-12-06", "OR"]], ["state", "2023-12-05"], ["product", "2023-12-05"], ["product", "2025-12-05"], ["color", "2023-12-01"]]
-
-# Output:
-# [null, "CA", "cheese", ""]
-
-# Explanation:
-
-# order_id	cost	sell_price	product	date	state
-# 23	12	18	cheese	2023-12-04	CA
-# 24	5	12	melon	2023-12-04	OR
-# 25	25	31	cheese	2023-12-05	OR
-# 26	4	12	bread	2023-12-05	CA
-# 25	10	14	cheese	2023-12-06	CA
-# 26	5	6	bread	2023-12-06	OR
-# DataWarehouse warehouse = new DataWarehouse(data);
-# warehouse.getMostProfitable("state", "2023-12-05"); // Returns "CA". For all records on or after "2023-12-05", the net profit for "CA" is (12 - 4) + (14 - 10) = 8 + 4 = 12, for "OR" is (31 - 25) + (6 - 5) = 6 + 1 = 7.
-# warehouse.getMostProfitable("product", "2023-12-05"); // Returns "cheese". Net profit for "cheese" is 10, "bread" is 9, and "melon" is 0.
-# warehouse.getMostProfitable("product", "2025-12-05"); // Returns "", as no dates qualify.
-# warehouse.getMostProfitable("color", "2023-12-01"); // Returns "", as no column qualify.
+# 中文：再给一个起始日期 startDate，只考虑 date >= startDate 的订单。计算每条订单的利润（sell_price - cost），然后按指定列分组，找出利润最大的分组。如果有并列，返回字典序最小的。
+# English: Given a start date, only consider rows where date >= startDate. For each row compute profit (sell_price - cost), 
+# group by the given column, and return the group with the highest total profit. If there’s a tie, return the lexicographically smallest one.
 
 
+# 版本一（Q1）：返回总销售额 sum(sell_price)
+
+# 输入：二维数组 data: List[List[str]]（第一行是 header）
+
+# 输出：整型总销售额
 
 
+from typing import List
 
+# V1: 仅计算整表 sell_price 总和
+def solution(data: List[List[str]]) -> int:
+    """
+    data: 第一行 header，后面每行是订单记录，所有值都是字符串
+    要求：列位置不固定，不能 hardcode 列索引
+    返回：整表 sell_price 的总和（int）
+    时间复杂度 O(N)，空间复杂度 O(1)
+    """
+    assert data and len(data) >= 1
+    header = data[0]
+    rows = data[1:]
+
+    # 动态定位列索引
+    try:
+        idx_sell = header.index("sell_price")
+    except ValueError:
+        return 0  # 没有 sell_price 列，视为 0
+
+    total = 0
+    for r in rows:
+        # 所有值是字符串，示例为整数，这里用 int
+        total += int(r[idx_sell])
+    return total
+
+
+# 版本二（Q2）：按指定列做 pivot，汇总 sum(sell_price)
+
+# 在 V1 基础上，修改函数签名，新增参数 pivotColumn: str
+
+# 输出：Dict[str, int]，key 是该列的取值，value 是该组的销售额总和
+# （实际面试可能让你输出成二维表/字符串，这里返回 dict，易测）
+
+from typing import List, Dict
 from collections import defaultdict
-from typing import List, Dict, Tuple
 
-class DataWarehouse:
+# V2: 按 pivotColumn 分组统计 sell_price 总和
+def solution(data: List[List[str]], pivotColumn: str) -> Dict[str, int]:
     """
-    数据结构：
-    - data: List[List[str]]，第一行是 header，其余是数据行（所有值都是字符串）
-    - 列的位置不固定，必须通过列名定位，而不能写死索引
-    约束：
-    - 日期为 'YYYY-MM-DD'，因此可以直接用字符串比较（同格式下字典序 == 时间序）
+    返回：{pivot_value: sum_sell_price}
+    若不存在 pivotColumn 或 sell_price 列，返回空 dict
+    时间复杂度 O(N)，空间复杂度 O(K) （K 为分组数）
     """
+    assert data and len(data) >= 1
+    header = data[0]
+    rows = data[1:]
 
-    def __init__(self, data: List[List[str]]):
-        """
-        初始化：
-        - 保存原始数据
-        - 解析并缓存 header -> index 的映射，避免每次查找 O(C) 的开销
-        - 预取常用列的索引（如果存在）
-        """
-        assert data and len(data) >= 1, "Table must contain at least header row."
+    # 定位列索引
+    try:
+        idx_sell = header.index("sell_price")
+        idx_pivot = header.index(pivotColumn)
+    except ValueError:
+        return {}
 
-        self.header = data[0]
-        self.rows = data[1:]  # 只包含数据行
-        self.col_idx: Dict[str, int] = {name: i for i, name in enumerate(self.header)}
+    acc = defaultdict(int)
+    for r in rows:
+        key = r[idx_pivot]
+        acc[key] += int(r[idx_sell])
+    return dict(acc)
 
-        # 预取常用列索引（题目保证存在）
-        self.idx_cost = self.col_idx.get("cost")
-        self.idx_sell = self.col_idx.get("sell_price")
-        self.idx_date = self.col_idx.get("date")
 
-    # ---------- 第一问：总销售额 ----------
-    def total_sales(self) -> int:
-        """
-        计算整张表的 sell_price 总和（所有行）。
-        时间复杂度：O(N)
-        空间复杂度：O(1)
-        """
-        if self.idx_sell is None:
-            # 没有 sell_price 列，视为 0
-            return 0
+# 版本三（Q3）：过滤日期、计算利润、找最大项（tie 用字典序）
 
-        total = 0
-        for r in self.rows:
-            # 所有值是字符串，需转换为数字；示例为整数，这里用 int
-            total += int(r[self.idx_sell])
-        return total
+# 在 V2 基础上，再次修改函数签名，新增参数 startDate: str
 
-    # ---------- 第二问：按某列分组聚合销售额 ----------
-    def pivot_sum(self, pivot_column: str) -> Dict[str, int]:
-        """
-        对指定列（如 state/product/region 等）进行分组，
-        统计每个分组的 sell_price 累加和。
-        若该列不存在，返回空 dict。
+# 只统计 date >= startDate 的记录
 
-        时间复杂度：O(N)
-        空间复杂度：O(K)，K 为分组数
-        """
-        idx_pivot = self.col_idx.get(pivot_column)
-        if idx_pivot is None or self.idx_sell is None:
-            return {}
+# 利润 profit = sell_price - cost
 
-        acc = defaultdict(int)
-        for r in self.rows:
+# 返回：最赚钱的 pivotColumn 值；若无匹配返回空串 ""
+# （tie：利润并列取字典序最小的 key）
+
+from typing import List
+from collections import defaultdict
+
+# V3: 过滤日期 >= startDate，按 pivotColumn 汇总利润，返回利润最大的组（tie 取字典序最小）
+def solution(data: List[List[str]], pivotColumn: str, startDate: str) -> str:
+    """
+    返回：最赚钱的 pivot 值 (str)；无匹配返回 ""。
+    仅统计满足 date >= startDate 的记录。
+    利润 = sell_price - cost
+    tie-breaker：利润相同取 key 的字典序最小。
+    时间复杂度 O(N)，空间复杂度 O(K)
+    """
+    assert data and len(data) >= 1
+    header = data[0]
+    rows = data[1:]
+
+    # 必要列检查与索引
+    try:
+        idx_date = header.index("date")
+        idx_cost = header.index("cost")
+        idx_sell = header.index("sell_price")
+        idx_pivot = header.index(pivotColumn)
+    except ValueError:
+        return ""
+
+    # 由于日期是 YYYY-MM-DD，同格式下字符串比较可直接等价于时间比较
+    profit_by_key = defaultdict(int)
+
+    for r in rows:
+        if r[idx_date] >= startDate:
+            profit = int(r[idx_sell]) - int(r[idx_cost])
             key = r[idx_pivot]
-            acc[key] += int(r[self.idx_sell])
-        return dict(acc)
+            profit_by_key[key] += profit
 
-    # ---------- 第三问：过滤日期 + 计算利润 + 取最优 ----------
-    def getMostProfitable(self, pivotColumn: str, startDate: str) -> str:
-        """
-        只考虑 date >= startDate 的记录：
-        - 对每一行计算 profit = sell_price - cost
-        - 按 pivotColumn 分组累加 profit
-        - 返回“总利润最大”的那个分组值；若并列，返回字典序最小者
-        - 若没有匹配记录，或 pivotColumn 不存在，返回空字符串 ""
+    if not profit_by_key:
+        return ""
 
-        时间复杂度：O(N)
-        空间复杂度：O(K)
-        """
-        # 基础列检查：日期 / 成本 / 售价 必须存在
-        if self.idx_date is None or self.idx_cost is None or self.idx_sell is None:
-            return ""
-
-        # 透视列存在性检查
-        idx_pivot = self.col_idx.get(pivotColumn)
-        if idx_pivot is None:
-            return ""
-
-        # 根据 startDate 过滤 + 计算并累加利润
-        profit_by_key = defaultdict(int)
-        for r in self.rows:
-            # 题目给出 YYYY-MM-DD，直接字符串比较即可
-            if r[self.idx_date] >= startDate:
-                profit = int(r[self.idx_sell]) - int(r[self.idx_cost])
-                key = r[idx_pivot]
-                profit_by_key[key] += profit
-
-        if not profit_by_key:
-            return ""
-
-        # 选出最大利润；并列则取 key 的字典序最小
-        # max 的 key 使用 tuple：(-profit, key) 等价于先按利润降序，再按 key 升序
-        # 也可以用 max(profit_by_key.items(), key=lambda kv: (kv[1], -ord)) 的变体
-        best_key, _ = min(
-            profit_by_key.items(),
-            key=lambda kv: (-kv[1], kv[0])  # 利润大的优先（取负数），再按 key 升序
-        )
-        return best_key
+    # 选出利润最大；并列则按 key 的字典序最小
+    # 用 min + 自定义 key：(-profit, key) 等价于利润降序、key 升序
+    best_key, _ = min(
+        profit_by_key.items(),
+        key=lambda kv: (-kv[1], kv[0])
+    )
+    return best_key
 
 
-# -----------------------
-# 简单用例（对应题干的示例）
-if __name__ == "__main__":
-    data = [
-        ["order_id", "cost", "sell_price", "product", "date", "state"],
-        ["23", "12", "18", "cheese", "2023-12-04", "CA"],
-        ["24", "5",  "12", "melon",  "2023-12-04", "OR"],
-        ["25", "25", "31", "cheese", "2023-12-05", "OR"],
-        ["26", "4",  "12", "bread",  "2023-12-05", "CA"],
-        ["25", "10", "14", "cheese", "2023-12-06", "CA"],
-        ["26", "5",  "6",  "bread",  "2023-12-06", "OR"],
-    ]
 
-    wh = DataWarehouse(data)
+# 复杂度与答辩要点（面试口径）
 
-    # 第一问：总销售额
-    print("total_sales =", wh.total_sales())  # 18+12+31+12+14+6 = 93
+# 三版时间复杂度均为 O(N)，空间为 O(1) 或 O(K)（K 为分组数）。
 
-    # 第二问：按 state 聚合销售额
-    print("pivot_sum(state) =", wh.pivot_sum("state"))  # {'CA': 18+12+14=44, 'OR': 12+31+6=49}
+# 生产优化：
 
-    # 第三问：最赚钱的 state（从 2023-12-05 起）
-    print(wh.getMostProfitable("state", "2023-12-05"))    # CA
-    print(wh.getMostProfitable("product", "2023-12-05"))  # cheese
-    print(wh.getMostProfitable("product", "2025-12-05"))  # ""
-    print(wh.getMostProfitable("color", "2023-12-01"))    # ""
+# 预解析 header→index（已做）。
+
+# 大数据可做 分片预聚合 与 并行归并，或直接用 SQL/Presto/Hive。
+
+# 只需 Top-1 时可用堆/单遍保留当前最优，避免全量排序（这里已单遍）。
+
+# 若 startDate 经常变化，可按日期分桶/索引，减少扫描范围。
+
+
+# 第一问：总销售额
+
+# 时间复杂度：O(N) —— 遍历所有行累加。
+
+# 空间复杂度：O(1) —— 只需要一个累加器。
+
+# English: Time O(N), Space O(1). Just one pass with a single accumulator.
+
+# 第二问：按列分组求和
+
+# 时间复杂度：O(N) —— 遍历所有行，更新哈希表。
+
+# 空间复杂度：O(K) —— K 是分组数，哈希表存每组的和。
+
+# English: Time O(N), Space O(K), where K is the number of unique groups.
+
+# 第三问：过滤日期 + 计算利润 + 找最大
+
+# 时间复杂度：O(N) —— 遍历时计算利润并维护最优。
+
+# 空间复杂度：O(K) —— K 是分组数，哈希表存每组利润。
+
+# English: Time O(N), Space O(K), scanning rows and tracking profit per group.
