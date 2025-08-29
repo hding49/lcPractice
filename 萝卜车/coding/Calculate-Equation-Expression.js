@@ -55,7 +55,7 @@
  * - 自顶向下 DFS：evalVar(v)
  * - 记忆化避免重复计算
  */
-function computeExp(target, expressions) {
+function computeExp1(target, expressions) {
   // 解析：var -> rhs（字符串）
   const defs = new Map();
   for (const line of expressions) {
@@ -119,7 +119,7 @@ function computeExp(target, expressions) {
  * - 增加 evalExpr(expr)：按空格分词，左结合处理 + / -
  * - token 是整数则直接解析；否则当作变量递归求值
  */
-function computeExp(target, expressions) {
+function computeExp2(target, expressions) {
   // var -> rhs（字符串）
   const defs = new Map();
   for (const line of expressions) {
@@ -197,7 +197,7 @@ function computeExp(target, expressions) {
  *   - 对同一变量的多条定义：能算出来的结果如果出现 ≥2 个不同值 → 冲突
  */
 
-function computeExp(target, expressions) {
+function computeExp3(target, expressions) {
   // var -> array of RHS（支持多定义）
   const defs = new Map();
   for (const line of expressions) {
@@ -302,3 +302,13 @@ function computeExp(target, expressions) {
 // “In this version, even with cycles and multiple definitions, each expression is still only visited once.
 // So the time complexity remains O(M), linear in the total size of the input.
 // The space complexity is also O(N + M), for the maps and recursion.”
+
+console.log(
+  "Solution 1 output:",
+  computeExp1("T2", ["T1 = 1", "T2 = T3", "T3 = T1"])
+); //
+console.log(
+  "Solution 2 output:",
+  computeExp2("T2", ["T1 = 1", "T2 = 2 + T4", "T3 = T1 - 4", "T4 = T1 + T3"])
+);
+console.log("Solution 3 output:", computeExp3("T2", ["T1=4", "T1 = 2 + T2"])); // IMPOSSIBLE

@@ -76,6 +76,14 @@ function solution2(path) {
 
     const row = board.length - 1 - y; // CHANGED from Q1: 由于原点在左下，需要翻转行索引
     map.set(idx, board[row][x]); // NEW in Q2: 把提取出的字符存入对应的 index 位置
+
+    // 边界保护 检查row和x是否在合法范围内
+    // if(row < 0 || row >= board.length || x < 0 || x >= board[row].length){
+    //     map.set(idx, "") // 超出边界 存入空字符串
+    // }
+    // else{
+    //   map.set(idx, board[row][x]) // 合法范围内 存入对应字符
+    // }
   }
 
   if (map.size === 0) return ""; // NEW in Q2: 如果没有任何块，直接返回空字符串
@@ -206,3 +214,11 @@ function solution3(path) {
 // EN: “We scan the file linearly until we either finish the first password or hit a repeated index. That’s O(N) time in the worst case. Space is O(N) for the input lines plus O(B + P) for the current board and index map. We only keep the first password, so memory is lower than before.”
 
 // ZH: “我们线性扫描文件，直到解析出第一个密码或者遇到重复 index。最坏情况时间是 O(N)，组装密码是 O(P)，整体 O(N)。空间是 O(N) 存输入，再加 O(B + P) 存当前矩阵和 index map。相比之前保存所有密码，这里只保存第一个，内存更小。”
+
+const testPath1 = "./test_input1.txt";
+const testPath2 = "./test_input2.txt";
+const testPath3 = "./test_input3.txt";
+
+console.log("Solution 1 output:", solution1(testPath1)); // C
+console.log("Solution 2 output:", solution2(testPath2)); // VC
+console.log("Solution 3 output:", solution3(testPath3)); // VC

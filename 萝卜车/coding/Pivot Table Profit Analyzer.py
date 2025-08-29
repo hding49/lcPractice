@@ -26,7 +26,7 @@
 from typing import List
 
 # V1: 仅计算整表 sell_price 总和
-def solution(data: List[List[str]]) -> int:
+def solution1(data: List[List[str]]) -> int:
     """
     data: 第一行 header，后面每行是订单记录，所有值都是字符串
     要求：列位置不固定，不能 hardcode 列索引
@@ -61,7 +61,7 @@ from typing import List, Dict
 from collections import defaultdict
 
 # V2: 按 pivotColumn 分组统计 sell_price 总和
-def solution(data: List[List[str]], pivotColumn: str) -> Dict[str, int]:
+def solution2(data: List[List[str]], pivotColumn: str) -> Dict[str, int]:
     """
     返回：{pivot_value: sum_sell_price}
     若不存在 pivotColumn 或 sell_price 列，返回空 dict
@@ -100,7 +100,7 @@ from typing import List
 from collections import defaultdict
 
 # V3: 过滤日期 >= startDate，按 pivotColumn 汇总利润，返回利润最大的组（tie 取字典序最小）
-def solution(data: List[List[str]], pivotColumn: str, startDate: str) -> str:
+def solution3(data: List[List[str]], pivotColumn: str, startDate: str) -> str:
     """
     返回：最赚钱的 pivot 值 (str)；无匹配返回 ""。
     仅统计满足 date >= startDate 的记录。
@@ -181,3 +181,35 @@ def solution(data: List[List[str]], pivotColumn: str, startDate: str) -> str:
 # 空间复杂度：O(K) —— K 是分组数，哈希表存每组利润。
 
 # English: Time O(N), Space O(K), scanning rows and tracking profit per group.
+
+
+data = [
+    ["order_id", "cost", "sell_price", "product", "date", "state"],
+    ["23", "12", "18", "cheese", "2023-12-04", "CA"],
+    ["24", "5", "12", "melon", "2023-12-04", "OR"],
+    ["25", "25", "31", "cheese", "2023-12-05", "OR"],
+    ["26", "4", "12", "bread", "2023-12-05", "CA"],
+    ["25", "10", "14", "cheese", "2023-12-06", "CA"],
+    ["26", "5", "6", "bread", "2023-12-06", "OR"]
+]
+
+# solution1: 总销售额
+print("solution1:", solution1(data))  # 18+12+31+12+14+6 = 93
+
+# solution2: 按 state 分组
+print("solution2 (state):", solution2(data, "state"))  # {'CA': 18+12+14=44, 'OR': 12+31+6=49}
+
+# solution2: 按 product 分组
+print("solution2 (product):", solution2(data, "product"))  # {'cheese': 18+31+14=63, 'melon': 12, 'bread': 12+6=18}
+
+# solution3: 按 state，起始日期 2023-12-05
+print("solution3 (state, 2023-12-05):", solution3(data, "state", "2023-12-05"))  # CA: (12-4)+(14-10)=12, OR: (31-25)+(6-5)=7，最大是CA
+
+# solution3: 按 product，起始日期 2023-12-05
+print("solution3 (product, 2023-12-05):", solution3(data, "product", "2023-12-05"))  # cheese: (31-25)+(14-10)=10, bread: (12-4)+(6-5)=9，最大是cheese
+
+# solution3: 按 product，起始日期 2025-12-05（无数据）
+print("solution3 (product, 2025-12-05):", solution3(data, "product", "2025-12-05"))  # ""
+
+# solution3: 按 color，起始日期 2023-12-01（无此列）
+print("solution3 (color, 2023-12-01):", solution3(data, "color", "2023-12-01"))

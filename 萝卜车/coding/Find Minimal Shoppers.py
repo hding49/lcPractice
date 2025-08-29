@@ -71,7 +71,7 @@
 
 from typing import List
 
-def solve(orders: List[List[int]], k: float = None) -> float:
+def solve1(orders: List[List[int]], k: float = None) -> float:
     """
     第一问版本：
     - 只有一个 shopper
@@ -85,7 +85,7 @@ def solve(orders: List[List[int]], k: float = None) -> float:
     cur = 0          # 当前时间（厨师/worker 下一次可开始的时刻）
     total_wait = 0   # 等待时间之和 = sum(finish - arrival)
 
-    for duration, arrival in orders:
+    for arrival, duration in orders:
         start = max(cur, arrival)
         finish = start + duration
         total_wait += (finish - arrival)
@@ -106,7 +106,7 @@ def solve(orders: List[List[int]], k: float = None) -> float:
 from typing import List
 import heapq
 
-def solve(orders: List[List[int]], k: float = None):
+def solve2(orders: List[List[int]], k: float = None):
     """
     混合题解（同一个函数应对两问）：
     - 若 k is None：求单个 shopper 的平均等待时间（第一问）
@@ -123,7 +123,7 @@ def solve(orders: List[List[int]], k: float = None):
     if k is None:
         cur = 0
         total_wait = 0
-        for duration, arrival in orders:
+        for arrival, duration in orders:
             start = max(cur, arrival)
             finish = start + duration
             total_wait += (finish - arrival)
@@ -147,7 +147,7 @@ def solve(orders: List[List[int]], k: float = None):
         total_wait = 0
         threshold = k * n  # 用乘法避免反复除法与浮点误差
 
-        for duration, arrival in orders:
+        for arrival, duration in orders:
             free_time = heapq.heappop(heap)   # 最早空闲的时刻
             start = max(arrival, free_time)
             finish = start + duration
@@ -259,3 +259,14 @@ def solve(orders: List[List[int]], k: float = None):
 # •	为什么你选择用heap
 # •	问时间&空间复杂度和优化
 # •	并且如果是production code，如何改进
+
+
+
+# Test for solve1
+orders1 = [[1, 2], [2, 5], [4, 3]]
+print("solve1:", solve1(orders1))  # 输出5
+
+# Test for solve2
+orders2 = [[1, 4], [2, 4], [3, 4], [4, 4]]
+k = 4.3
+print("solve2:", solve2(orders2, k))  # 输出3
