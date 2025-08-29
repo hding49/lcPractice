@@ -91,50 +91,30 @@ function solution2(path) {
 
 function solution3(path) {
   const text = fs.readFileSync(path, "utf8").replace(/^\uFEFF/, "");
-  const lines = text.split(/\r?\n/);
-  const isIndexLine = (s) => /^\d+$/.test((s ?? "").trim());
+  const lines = text.split(/\r?\n/); // 与 solution2 一样：保留空行
+  const isIndexLine = (s) => /^\d+$/.test(s.trim());
 
-  // 组装并校验 index 必须 0..max 连续
-  function assemble(map) {
-    if (map.size === 0) return "";
-    const max = Math.max(...map.keys());
-    for (let k = 0; k <= max; k++) if (!map.has(k)) return "";
-    let s = "";
-    for (let k = 0; k <= max; k++) s += map.get(k);
-    return s;
-  }
-
-  const passwords = [];
-  let i = 0;
-  let curr = new Map(); // 当前密码的 index -> char
-
-  const flushCurrent = () => {
-    const pwd = assemble(curr);
-    if (pwd) passwords.push(pwd);
-    curr = new Map();
-  };
+  const map = new Map(); // 与 solution2 一样
+  let i = 0; // 与 solution2 一样
 
   while (i < lines.length) {
-    // 跳过前导空行（也作为分隔符）
-    if (lines[i].trim() === "") {
-      // 遇到分隔空行：结束一个密码
-      flushCurrent();
-      // 连续空行都跳过
-      while (i < lines.length && lines[i].trim() === "") i++;
-      continue;
-    }
+    // 与 solution2 一样：跳过 chunk 间空行
+    while (i < lines.length && lines[i].trim() === "") i++;
+    if (i >= lines.length) break;
 
-    // 读取一个 chunk
+    // 与 solution2 一样：读取 index
     if (!isIndexLine(lines[i])) break;
     const idx = parseInt(lines[i].trim(), 10);
     i++;
 
-    if (i >= lines.length) break;
-    const coordRaw = lines[i].trim();
-    const [x, y] = coordRaw.slice(1, -1).split(/,\s*/).map(Number);
+    // ★ 仅此处为第三问新增：若 index 重复，表示第二个密码开始 → 停止解析第一个密码
+    if (map.has(idx)) break;
+
+    // 与 solution2 一样：读取坐标
+    const [x, y] = lines[i].slice(1, -1).split(/,\s*/).map(Number);
     i++;
 
-    // 读取矩阵直到下一 index / 空行 / EOF
+    // 与 solution2 一样：读取矩阵直到下一 index / 空行 / EOF
     const board = [];
     while (
       i < lines.length &&
@@ -144,22 +124,23 @@ function solution3(path) {
       board.push(lines[i]);
       i++;
     }
+    // 与 solution2 一样：跳过矩阵后的空行
+    while (i < lines.length && lines[i].trim() === "") i++;
 
-    // 越界保护并取字符（原点在左下，需要翻转行号）
-    const H = board.length;
-    const row = H - 1 - y;
-    const ch =
-      H > 0 && row >= 0 && row < H && x >= 0 && x < (board[row]?.length ?? 0)
-        ? board[row][x]
-        : "";
-    if (ch !== "") curr.set(idx, ch);
+    // 与 solution2 一样：坐标系翻转并取字符
+    const row = board.length - 1 - y;
+    map.set(idx, board[row][x]);
   }
 
-  // 文件末尾可能没有空行收尾
-  if (curr.size > 0) flushCurrent();
-
-  // 多密码：一行一个返回（若题目要求别的格式可改）
-  return passwords.join("\n");
+  // 与 solution2 一样：组装并返回（要求 0..maxIndex 连续）
+  if (map.size === 0) return "";
+  const maxIndex = Math.max(...map.keys());
+  let out = "";
+  for (let k = 0; k <= maxIndex; k++) {
+    if (!map.has(k)) return "";
+    out += map.get(k);
+  }
+  return out;
 }
 
 // ① 第一问（solution1）
@@ -208,23 +189,20 @@ function solution3(path) {
 
 // ③ 第三问（solution3：多个密码，空行分组）
 
-// Time 时间复杂度
+// 时间复杂度
 
-// EN: O(N + ΣP_i) where N is total input size and P_i are lengths of each password.
-// We linearly parse all chunks across groups and assemble per group. Since ΣP_i ≤ N in typical settings, this is effectively O(N).
+// EN: O(N) in the worst case, since we may still scan the entire file if no index repeats. In the average case, we often stop earlier. Assembling the first password is O(P) where P is its length, so overall O(N + P) ≈ O(N).
 
-// ZH: O(N + ΣP_i)，N 为输入总大小，P_i 为各密码长度之和。按组线性解析并组装，一般情况下 ΣP_i 不超过输入规模，整体近似 O(N)。
+// ZH: 最坏情况下需要扫描完整个文件，所以是 O(N)；通常情况下会更早停止。组装第一个密码是 O(P)（P = 密码长度），整体是 O(N + P)，近似 O(N)。
 
-// Space 空间复杂度
+// 空间复杂度
 
-// EN: O(N) to store input lines; auxiliary peak is O(B_max + P_max) during parsing (largest board + current index map).
-// Final output stores all passwords: O(ΣP_i).
+// EN: O(N) to store input lines; auxiliary is O(B + P) where B is the current board size and P is the size of the first password’s index map. Unlike before, we only keep one password, not all, so there is no ΣP_i.
 
-// ZH: O(N)（存输入）；解析时的额外峰值为 O(B_max + P_max)（最大矩阵块 + 当前密码映射）。最终结果需要 O(ΣP_i) 存所有密码。
+// ZH: O(N) 存输入；额外空间是 O(B + P)，其中 B 是当前矩阵大小，P 是第一个密码的 map 大小。与之前不同，现在只存一个密码，没有 ΣP_i。
 
-// Interview blurb（面试可说）
+// 面试时可说
 
-// EN: “We scan the whole file once, splitting by blank lines into password groups. Time is O(N + ΣP_i) ≈ O(N).
-// Memory is O(N) for input; extra peak O(B_max + P_max) while parsing, and O(ΣP_i) to hold the resulting passwords.”
+// EN: “We scan the file linearly until we either finish the first password or hit a repeated index. That’s O(N) time in the worst case. Space is O(N) for the input lines plus O(B + P) for the current board and index map. We only keep the first password, so memory is lower than before.”
 
-// ZH: “整份文件线性扫描、以空行分组。时间 O(N + ΣP_i)，约等于 O(N)；空间 O(N) 存输入，解析时峰值 O(B_max + P_max)，并用 O(ΣP_i) 存放所有输出密码。”
+// ZH: “我们线性扫描文件，直到解析出第一个密码或者遇到重复 index。最坏情况时间是 O(N)，组装密码是 O(P)，整体 O(N)。空间是 O(N) 存输入，再加 O(B + P) 存当前矩阵和 index map。相比之前保存所有密码，这里只保存第一个，内存更小。”
