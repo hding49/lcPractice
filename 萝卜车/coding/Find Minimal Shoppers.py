@@ -80,7 +80,7 @@ def solve1(orders: List[List[int]], k: float = None) -> float:
     参数 k 在第一问忽略（为了后续同签名扩展）
     """
     # 1) 按到达时间排序
-    orders.sort(key=lambda x: x[1])  # x = [duration, arrival]
+    orders.sort(key=lambda x: x[0])  # x = [arrival, duration]
 
     cur = 0          # 当前时间（厨师/worker 下一次可开始的时刻）
     total_wait = 0   # 等待时间之和 = sum(finish - arrival)
@@ -113,33 +113,33 @@ def solve2(orders: List[List[int]], k: float = None):
     - 若 k 给定：返回使平均等待时间 <= k 的最少 shoppers 数（第二问），无解返回 -1
     """
 
-    # 统一先按 arrival 排序（两问都需要）
-    # 注意：题目给的 orders[i] = [duration, arrivalTime]
-    orders.sort(key=lambda x: x[1])
+    # # 统一先按 arrival 排序（两问都需要）
+    # # 注意：题目给的 orders[i] = [duration, arrivalTime]
+    # orders.sort(key=lambda x: x[1])
 
     n = len(orders)
 
-    # ---------- 第一问：单个 shopper 平均等待 ----------
-    if k is None:
-        cur = 0
-        total_wait = 0
-        for arrival, duration in orders:
-            start = max(cur, arrival)
-            finish = start + duration
-            total_wait += (finish - arrival)
-            cur = finish
-        return total_wait / n
+    # # ---------- 第一问：单个 shopper 平均等待 ----------
+    # if k is None:
+    #     cur = 0
+    #     total_wait = 0
+    #     for arrival, duration in orders:
+    #         start = max(cur, arrival)
+    #         finish = start + duration
+    #         total_wait += (finish - arrival)
+    #         cur = finish
+    #     return total_wait / n
 
     # ---------- 第二问：最少 shoppers 使平均等待 <= k ----------
 
     # 剪枝：即使有无限个 shoppers，等待时间 = duration（到达即开做）
     # 若 avg_duration > k，则一定无解
-    sum_duration = sum(d for d, _ in orders)
+    sum_duration = sum(d for _, d in orders)
     if sum_duration > k * n:
         return -1
 
     # 可行性检查：给定 m 个 shoppers，是否能使平均等待 <= k
-    def can(m: int) -> bool:
+    def can(m):
         # 堆中存储每个 shopper 的“下一次空闲时间”，初始全 0（都空闲）
         heap = [0] * m
         heapq.heapify(heap)
@@ -164,6 +164,7 @@ def solve2(orders: List[List[int]], k: float = None):
     left, right, ans = 1, n, -1
     while left <= right:
         mid = (left + right) // 2
+        # 如果可以（can(mid) 为 True）：说明当前人数可行，但可能还能更少，于是ans = mid 记录当前可行解 right = mid - 1 继续尝试更小的 shoppers 数
         if can(mid):
             ans = mid
             right = mid - 1

@@ -20,7 +20,8 @@
 
 // 输入：包含多个密码，每个密码由一组 chunk 构成，用 空行分隔。
 
-// 要求：对每组 chunk 执行第二问的逻辑，拼成一个密码，输出所有密码。
+// 要求：对每组 chunk 执行第二问的逻辑，拼成一个密码，输出所有密码。一个文件里有多个这样的password。但找到第一个password结束
+// 具体怎么判断当一个password结束，是根据当前字符所在的index有没有重复
 
 const fs = require("fs");
 
@@ -57,12 +58,16 @@ function solution2(path) {
     if (i >= lines.length) break; // NEW in Q2: 如果到达文件结尾则退出循环
 
     if (!isIndexLine(lines[i])) break; // NEW in Q2: 非法格式保守退出（当前行不是 index）
+
+    //先拿到index
     const idx = parseInt(lines[i].trim(), 10); // NEW in Q2: 读取 index，表示该字符在密码中的位置
     i++; // NEW in Q2: 游标移到下一行（坐标行）
 
+    //在获取坐标
     const [x, y] = lines[i].slice(1, -1).split(/,\s*/).map(Number); // CHANGED from Q1: 坐标来自当前 chunk 的第二行
     i++; // NEW in Q2: 游标移到矩阵行
 
+    //最后获取矩阵
     const board = []; // NEW in Q2: 收集当前 chunk 的矩阵行
     while (
       i < lines.length &&

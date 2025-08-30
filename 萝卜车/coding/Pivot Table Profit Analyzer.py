@@ -102,17 +102,17 @@ from collections import defaultdict
 # V3: 过滤日期 >= startDate，按 pivotColumn 汇总利润，返回利润最大的组（tie 取字典序最小）
 def solution3(data: List[List[str]], pivotColumn: str, startDate: str) -> str:
     """
-    返回：最赚钱的 pivot 值 (str)；无匹配返回 ""。
-    仅统计满足 date >= startDate 的记录。
-    利润 = sell_price - cost
-    tie-breaker：利润相同取 key 的字典序最小。
-    时间复杂度 O(N)，空间复杂度 O(K)
+    只考虑 date >= startDate：
+    - 利润 = sell_price - cost
+    - 按 pivotColumn 分组累加利润
+    - 返回: "The most {pivotColumn} is {value}"
+      若无匹配或列不存在，返回 ""
     """
     assert data and len(data) >= 1
     header = data[0]
     rows = data[1:]
 
-    # 必要列检查与索引
+    # 必要列索引
     try:
         idx_date = header.index("date")
         idx_cost = header.index("cost")
@@ -121,25 +121,17 @@ def solution3(data: List[List[str]], pivotColumn: str, startDate: str) -> str:
     except ValueError:
         return ""
 
-    # 由于日期是 YYYY-MM-DD，同格式下字符串比较可直接等价于时间比较
     profit_by_key = defaultdict(int)
-
     for r in rows:
-        if r[idx_date] >= startDate:
-            profit = int(r[idx_sell]) - int(r[idx_cost])
-            key = r[idx_pivot]
-            profit_by_key[key] += profit
+        if r[idx_date] >= startDate:  # YYYY-MM-DD 可用字符串比较
+            profit_by_key[r[idx_pivot]] += int(r[idx_sell]) - int(r[idx_cost])
 
     if not profit_by_key:
         return ""
 
-    # 选出利润最大；并列则按 key 的字典序最小
-    # 用 min + 自定义 key：(-profit, key) 等价于利润降序、key 升序
-    best_key, _ = min(
-        profit_by_key.items(),
-        key=lambda kv: (-kv[1], kv[0])
-    )
-    return best_key
+    # 选利润最大；并列取字典序最小
+    best_key, _ = min(profit_by_key.items(), key=lambda kv: (-kv[1], kv[0]))
+    return f"The most {pivotColumn} is {best_key}"
 
 
 
