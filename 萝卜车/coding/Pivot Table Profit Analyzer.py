@@ -79,10 +79,43 @@ def solution2(data: List[List[str]], pivotColumn: str) -> Dict[str, int]:
         return {}
 
     acc = defaultdict(int)
+    # I use defaultdict(int) during aggregation because it makes the code cleaner—I don’t need to check if a key exists before adding.
+    # But when returning the result, I convert it back to a normal dict so the output is more standard and safe. 
+    # With a plain dict, if someone accesses a non-existing key, they get a KeyError instead of silently creating a zero entry.
     for r in rows:
         key = r[idx_pivot]
         acc[key] += int(r[idx_sell])
     return dict(acc)
+
+# def solution2_table(data, pivotColumn):
+#     result = solution2(data, pivotColumn)
+#     if not result:
+#         return []
+#     # 输出 [["group", "sum_sell_price"], ...]，按分组名排序
+#     table = [[pivotColumn, "sum_sell_price"]]
+#     for key in sorted(result):
+#         table.append([key, result[key]])
+#     return table
+
+# # 示例输出
+# print(solution2_table(data, "state"))
+# # [['state', 'sum_sell_price'], ['CA', 44], ['OR', 49]]
+
+# def solution2_str(data, pivotColumn):
+#     result = solution2(data, pivotColumn)
+#     if not result:
+#         return ""
+#     # 先输出表头
+#     lines = [f"{pivotColumn}\tsum_sell_price"]
+#     for key in sorted(result):
+#         lines.append(f"{key}\t{result[key]}")
+#     return "\n".join(lines)
+
+# # 示例输出
+# print(solution2_str(data, "state"))
+# # state	sum_sell_price
+# # CA	44
+# # OR	49
 
 
 # 版本三（Q3）：过滤日期、计算利润、找最大项（tie 用字典序）

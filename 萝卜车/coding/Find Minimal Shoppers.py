@@ -264,8 +264,8 @@ def solve2(orders: List[List[int]], k: float = None):
 
 
 # Test for solve1
-orders1 = [[1, 2], [2, 5], [4, 3]]
-print("solve1:", solve1(orders1))  # 输出5
+orders1 = [[5,2],[5,4],[10,3],[20,1]]
+print("solve1:", solve1(orders1))  # 输出3.25
 
 # Test for solve2
 orders2 = [[1, 4], [2, 4], [3, 4], [4, 4]]
