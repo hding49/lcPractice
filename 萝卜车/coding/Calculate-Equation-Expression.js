@@ -198,87 +198,98 @@ function computeExp2(target, expressions) {
  */
 
 function computeExp3(target, expressions) {
-  // var -> array of RHS（支持多定义）
+  // 构建一个映射：变量 -> RHS 数组（支持多重定义）
   const defs = new Map();
   for (const line of expressions) {
     const idx = line.indexOf("=");
     if (idx === -1) continue;
-    const lhs = line.slice(0, idx).trim();
-    const rhs = line.slice(idx + 1).trim();
+    const lhs = line.slice(0, idx).trim(); // 等号左边的变量
+    const rhs = line.slice(idx + 1).trim(); // 等号右边的表达式
     if (!defs.has(lhs)) defs.set(lhs, []);
-    defs.get(lhs).push(rhs);
+    defs.get(lhs).push(rhs); // 一个变量可能有多条定义
   }
 
-  const memo = new Map(); // var -> number（仅缓存“唯一确定”的值）
-  const visiting = new Set(); // 用于检测环
-  const isInt = (s) => /^-?\d+$/.test(s);
+  const memo = new Map(); // 记忆化缓存：变量 -> 已经唯一确定的数值
+  const visiting = new Set(); // DFS 递归栈，用来检测环
+  const isInt = (s) => /^-?\d+$/.test(s); // 简单判断 token 是否是整数
 
+  // 递归解析一个变量的值
   function evalVar(v) {
-    // 允许 token 直接是数字字面量
-    if (isInt(v)) return { ok: true, val: parseInt(v, 10) };
-    if (memo.has(v)) return { ok: true, val: memo.get(v) };
-
-    // 检测环
-    if (visiting.has(v)) return { ok: false };
+    if (isInt(v)) return { ok: true, val: parseInt(v, 10), cycle: false }; // 常量直接返回
+    if (memo.has(v)) return { ok: true, val: memo.get(v), cycle: false }; // 已缓存值直接返回
+    if (visiting.has(v)) return { ok: false, cycle: true }; // 变量在递归栈中，再次访问 -> 环
 
     const rhss = defs.get(v);
-    if (!rhss || rhss.length === 0) return { ok: false }; // 未定义
+    if (!rhss || rhss.length === 0) return { ok: false, cycle: false }; // 变量未定义
 
     visiting.add(v);
 
-    const values = new Set();
-    let sawAny = false;
+    const values = new Set(); // 收集所有成功算出的结果
+    let sawCycle = false; // 标记：子分支是否出现过环
+    let successCount = 0; // 成功算出的定义条数
 
     for (const rhs of rhss) {
-      const r = evalExpr(rhs);
+      const r = evalExpr(rhs); // 递归解析该 RHS
+      if (r.cycle) sawCycle = true; // 子分支中见过环，记录下来
       if (r.ok) {
-        sawAny = true;
+        successCount++; // 统计成功的定义条数
         values.add(r.val);
         if (values.size > 1) {
+          // 多定义算出不同结果 -> 冲突
           visiting.delete(v);
-          return { ok: false }; // 多定义结果冲突
+          return { ok: false, cycle: sawCycle };
         }
       }
-      // 如果 r 不 ok，跳过这条定义，其他定义可能可解
+      // r.ok === false：该定义失败（未定义/环/语法错误），后续统一检查
     }
 
     visiting.delete(v);
 
-    if (!sawAny) return { ok: false }; // 没有任何定义能确定出值（可能是环/未定义导致）
+    // 严格规则 1：如果子分支见过环 -> 整体失败
+    if (sawCycle) return { ok: false, cycle: true };
 
-    // 唯一值成立
+    // 严格规则 2：必须所有定义都成功 -> 否则失败
+    if (successCount !== rhss.length) return { ok: false, cycle: false };
+
+    // 此时唯一确定，缓存并返回
     const onlyVal = values.values().next().value;
     memo.set(v, onlyVal);
-    return { ok: true, val: onlyVal };
+    return { ok: true, val: onlyVal, cycle: false };
   }
 
+  // 解析并计算一个表达式（可能是常量/变量/带 + - 的式子）
   function evalExpr(expr) {
     const tokens = expr.split(/\s+/).filter(Boolean);
-    if (tokens.length === 0) return { ok: false };
+    if (tokens.length === 0) return { ok: false, cycle: false };
 
     let first = evalToken(tokens[0]);
-    if (!first.ok) return { ok: false };
+    if (!first.ok) return { ok: false, cycle: first.cycle };
     let acc = first.val;
+    let sawCycle = first.cycle;
 
+    // 从左到右处理 + / - 运算
     for (let i = 1; i < tokens.length; i += 2) {
       const op = tokens[i];
       const nextTok = tokens[i + 1];
       if (nextTok === undefined || (op !== "+" && op !== "-"))
-        return { ok: false };
+        return { ok: false, cycle: sawCycle };
       const r = evalToken(nextTok);
-      if (!r.ok) return { ok: false };
+      if (!r.ok) return { ok: false, cycle: sawCycle || r.cycle };
+      sawCycle = sawCycle || r.cycle;
       acc = op === "+" ? acc + r.val : acc - r.val;
     }
-    return { ok: true, val: acc };
+    return { ok: true, val: acc, cycle: sawCycle };
   }
 
+  // 判断 token 是数字还是变量
   function evalToken(tok) {
-    if (isInt(tok)) return { ok: true, val: parseInt(tok, 10) };
+    if (isInt(tok)) return { ok: true, val: parseInt(tok, 10), cycle: false };
     return evalVar(tok);
   }
 
   const res = evalVar(target);
-  return res.ok ? String(res.val) : "IMPOSSIBLE";
+  // 最终：只有在唯一确定且无环时返回数值，否则返回 "IMPOSSIBLE"
+  return res.ok && !res.cycle ? String(res.val) : "IMPOSSIBLE";
 }
 
 // Round 3 (Follow-up 2: cycles, multiple definitions, conflicts)
@@ -312,3 +323,53 @@ console.log(
   computeExp2("T2", ["T1 = 1", "T2 = 2 + T4", "T3 = T1 - 4", "T4 = T1 + T3"])
 );
 console.log("Solution 3 output:", computeExp3("T2", ["T1=4", "T1 = 2 + T2"])); // IMPOSSIBLE
+
+console.log(
+  "Solution 3 output:",
+  computeExp3("T2", ["T2 = T1 - 2", "T1 = 4", "T1 = 2 + T2"])
+); // IMPOSSIBLE
+
+// 1) 基础可解（链式）
+console.log(computeExp3("T2", ["T1 = 1", "T2 = T1"])); // "1"
+
+// 2) 含加减（单层）
+console.log(
+  computeExp3("T3", ["T1 = 1", "T2 = 2 + T4", "T3 = T1 - 4", "T4 = T1 + T3"])
+); // "-3"
+
+// 3) 目标涉及的成环 → 失败
+console.log(computeExp3("T1", ["T1 = T2", "T2 = T1"])); // IMPOSSIBLE
+
+// 4) 存在有环的分支
+console.log(computeExp3("T2", ["T2 = T1 - 2", "T1 = 4", "T1 = 2 + T2"])); // IMPOSSIBLE
+
+// 5) 目标未定义 → 失败
+console.log(computeExp3("T1", ["T2 = 1", "T3 = 2"])); // IMPOSSIBLE
+
+// 6) 多定义一致（都可达且相同）→ 接受
+console.log(computeExp3("A", ["A = 3", "A = 1 + 2"])); // "3"
+
+// 7) 多定义冲突（都可达且不同）→ 失败
+console.log(computeExp3("A", ["A = 3", "A = 4"])); // IMPOSSIBLE
+
+// 8) 一条定义可达可解，另一条不可达/解不出
+console.log(
+  computeExp3("B", [
+    "B = C + 1", // C 未定义 → 这一条解不出
+    "B = 5",
+  ])
+); // "IMPOSSIBLE"
+
+// 9) 深链条（确保 memo 与 DFS 正常工作）
+console.log(computeExp3("Z", ["X = 2", "Y = X + 3", "Z = Y - 1"])); // "4"
+
+// 10) 有环但不影响目标（环在无关分支上）→ 接受
+console.log(
+  computeExp3("T", [
+    "T = 10",
+    "U = V",
+    "V = U", // 与 T 无依赖关系的环
+  ])
+); // "10"
+
+console.log(computeExp3("A", ["A = 3", "A = 1 + 2"])); // "3"
