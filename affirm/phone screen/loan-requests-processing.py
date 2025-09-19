@@ -3,12 +3,11 @@
 
 # Part 1（建模与归并母公司）
 
-# 给一张「母→子」公司关系表，例如：
-# {"company_a": ["company_b", "company_c"], "company_d": ["company_a"]}
+# parent_to_children（母公司 → 子公司映射），
 
-# 任意公司可能是另一家公司的子公司，形成多级链。
+# 一条 loan（loan_id, user_id, merchant, amount），
 
-# 对每条贷款请求（[loan_id, user_id, merchant, amount]），先把 merchant 映射到其最顶层母公司（ultimate parent），然后将这条 loan 以该顶层母公司为归类键存起来（方便后续匹配）。
+# 输出：找到这条 loan 的顶层母公司，并把 loan 存起来。这里就不需要搞 context，直接函数里完成。
 
 # Part 2（交易匹配到贷款）
 
