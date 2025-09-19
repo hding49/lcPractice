@@ -18,11 +18,10 @@
 import random
 from collections import deque
 from dataclasses import dataclass, field
-from typing import List, Optional
 
 
 # ---------- 工具 ----------
-def make_shuffled_deck(m: int, seed: Optional[int] = None) -> List[int]:
+def make_shuffled_deck(m, seed=None):
     """生成 1..m 的洗牌结果"""
     deck = list(range(1, m + 1))
     rng = random.Random(seed)
@@ -35,44 +34,41 @@ def make_shuffled_deck(m: int, seed: Optional[int] = None) -> List[int]:
 # =========================================================
 @dataclass
 class TwoPlayerGame:
-    seed: Optional[int] = None
-    names: tuple = ("A", "B")
-    deck_size: int = 52
+    seed = None
+    names = ("A", "B")
+    deck_size = 52
 
-    # 运行时字段
-    hands: dict = field(init=False)
-    won_pile: dict = field(init=False)
+    hands = field(init=False)
+    won_pile = field(init=False)
 
     def __post_init__(self):
         deck = make_shuffled_deck(self.deck_size, self.seed)
-        half = self.deck_size // 2  # 题面保证能均分
+        half = self.deck_size // 2
         self.hands = {
             self.names[0]: deque(deck[:half]),
             self.names[1]: deque(deck[half:]),
         }
         self.won_pile = {self.names[0]: [], self.names[1]: []}
 
-    def play(self) -> str:
+    def play(self):
         a, b = self.names
         while self.hands[a] and self.hands[b]:
             ca = self.hands[a].popleft()
             cb = self.hands[b].popleft()
-            if   ca > cb: self.won_pile[a].extend([ca, cb])  # 本轮 2 张都记到 A
-            elif cb > ca: self.won_pile[b].extend([ca, cb])  # 本轮 2 张都记到 B
-            else:
-                # 回合平局的处理题面未定义；这里选择作废（不计分不入堆）
-                pass
+            if ca > cb:
+                self.won_pile[a].extend([ca, cb])
+            elif cb > ca:
+                self.won_pile[b].extend([ca, cb])
+            # 如果相等 → 本轮作废
 
-        # 计分：每张获胜牌 = 1 分
         score_a, score_b = len(self.won_pile[a]), len(self.won_pile[b])
         if score_a > score_b: return a
         if score_b > score_a: return b
 
-        # 最终平分 → 用各自得分堆里的最大牌决胜（若都空或再相等 → TIE）
         max_a = max(self.won_pile[a]) if self.won_pile[a] else -1
         max_b = max(self.won_pile[b]) if self.won_pile[b] else -1
-        if   max_a > max_b: return a
-        elif max_b > max_a: return b
+        if max_a > max_b: return a
+        if max_b > max_a: return b
         return "TIE"
 
 
@@ -111,64 +107,56 @@ class TwoPlayerGame:
 # 回合：每人打 1 张；唯一最大者赢下本轮所有牌；回合并列最大 → 作废
 # 终局：最高分者胜；若多人并列 → 用其得分堆最大牌做最终 tie-break；若仍并列 → 返回所有并列者
 # =========================================================
-@dataclass
 class NPlayerGame:
-    player_names: List[str]          # e.g. ["Joe", "Jill", "Bob"]
-    deck_size: int                   # M
-    seed: Optional[int] = None
+    player_names
+    deck_size
+    seed = None
 
-    hands: dict = field(init=False)
-    won_pile: dict = field(init=False)
-    rng: random.Random = field(init=False)
+    hands = field(init=False)
+    won_pile = field(init=False)
 
     def __post_init__(self):
         n = len(self.player_names)
         if n <= 0: raise ValueError("Need at least 1 player.")
         if self.deck_size < 0: raise ValueError("deck_size must be >= 0")
-        self.rng = random.Random(self.seed)
 
+        self.rng = random.Random(self.seed)
         deck = make_shuffled_deck(self.deck_size, self.seed)
         q, r = divmod(self.deck_size, n)
 
-        # 先均发 q 张（保持发牌顺序）
         self.hands = {name: deque() for name in self.player_names}
         idx = 0
         for _ in range(q):
             for name in self.player_names:
-                self.hands[name].append(deck[idx]); idx += 1
+                self.hands[name].append(deck[idx])
+                idx += 1
 
-        # 余下 r 张随机分给 r 个不同玩家（每人最多多 1 张）
         if r:
-            receivers = self.player_names[:]  # 复制
+            receivers = self.player_names[:]
             self.rng.shuffle(receivers)
             receivers = receivers[:r]
             for name in receivers:
-                self.hands[name].append(deck[idx]); idx += 1
+                self.hands[name].append(deck[idx])
+                idx += 1
 
         self.won_pile = {name: [] for name in self.player_names}
 
     def _play_one_round(self):
-        table = []  # (name, card)
+        table = []
         for name in self.player_names:
-            # 若有人没牌则不再开新的一轮（由外层循环控制）
             table.append((name, self.hands[name].popleft()))
 
         max_card = max(card for _, card in table)
         winners = [name for name, card in table if card == max_card]
         if len(winners) == 1:
             w = winners[0]
-            # 该轮赢家拿走桌面所有牌
             self.won_pile[w].extend(card for _, card in table)
-        else:
-            # 回合平局：作废（不计分不入堆）
-            pass
+        # 否则并列最大 → 本轮作废
 
-    def play(self) -> List[str]:
-        # 只要每个人都还有至少 1 张，才能继续一整轮
+    def play(self):
         while all(self.hands[name] for name in self.player_names):
             self._play_one_round()
 
-        # 1) 最高分（按牌张数计分）
         scores = {name: len(self.won_pile[name]) for name in self.player_names}
         best = max(scores.values()) if scores else 0
         cand = [name for name, sc in scores.items() if sc == best]
@@ -176,12 +164,9 @@ class NPlayerGame:
         if len(cand) == 1:
             return cand
 
-        # 2) 最终 tie-break：比较各自得分堆的最大牌
         max_cards = {name: (max(self.won_pile[name]) if self.won_pile[name] else -1) for name in cand}
         best_max = max(max_cards.values())
         cand2 = [name for name, v in max_cards.items() if v == best_max]
-
-        # 仍并列则返回所有并列者（极少见：都没得分或最大牌相同）
         return cand2
 
 

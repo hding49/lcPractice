@@ -80,7 +80,7 @@ def solve1(orders: List[List[int]], k: float = None) -> float:
     参数 k 在第一问忽略（为了后续同签名扩展）
     """
     # 1) 按到达时间排序
-    orders.sort(key=lambda x: x[0])  # x = [arrival, duration]
+    orders.sort(key=lambda x: (x[0], x[1]))  # x = [arrival, duration]
 
     cur = 0          # 当前时间（厨师/worker 下一次可开始的时刻）
     total_wait = 0   # 等待时间之和 = sum(finish - arrival)

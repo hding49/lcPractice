@@ -166,6 +166,7 @@ def solution3(data: List[List[str]], pivotColumn: str, startDate: str) -> str:
     best_key, _ = min(profit_by_key.items(), key=lambda kv: (-kv[1], kv[0]))
     return f"The most {pivotColumn} is {best_key}"
 
+# follow up 是 sort是 O n log n的时间复杂度 如何优化到O n 如何实现 使用max min
 
 
 # 复杂度与答辩要点（面试口径）
