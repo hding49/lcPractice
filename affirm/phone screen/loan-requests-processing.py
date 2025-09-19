@@ -27,113 +27,80 @@
 # 如有多条满足，通常取先入先出（FIFO）的一条，避免重复匹配。
 
 from collections import defaultdict, deque
-from typing import Dict, List, Tuple, Optional
 
-def build_loans_index(
-    parent_to_children: Dict[str, List[str]],
-    loans: List[Tuple[str, str, str, int]],
-):
+def ingest_loan(parent_to_children, loan, loans_store):
     """
     Part 1:
-    输入：
-      - parent_to_children: 母公司 -> 子公司 列表映射
-      - loans: 列表[(loan_id, user_id, merchant, amount)]
-    输出：
-      - context: dict，供 Part 2 使用，包含：
-          context["child_to_parent"]: 子 -> 母 的映射（假设每个子最多一个母）
-          context["loans"]: key=(user_id, ultimate_parent, amount) -> deque[loan_id]
-    说明：
-      - 这里把每笔 loan 归并到 顶层母公司 + user + amount 的桶中（FIFO）。
+    输入:
+      parent_to_children: 母公司 -> 子公司 映射
+      loan: (loan_id, user_id, merchant, amount)
+      loans_store: 外部传入的存储字典，键是 (user_id, ultimate_parent, amount)，值是 deque
+    输出:
+      ultimate_parent: 该 loan 对应公司的顶层母公司
     """
-    # 1) 构造 child -> parent
-    child_to_parent: Dict[str, str] = {}
+
+    # 子 -> 母 映射
+    child_to_parent = {}
+    for p, children in parent_to_children.items():
+        for c in children:
+            child_to_parent[c] = p
+
+    # 找顶层母公司
+    def find_root(company):
+        seen = set()
+        cur = company
+        while cur in child_to_parent and cur not in seen:
+            seen.add(cur)
+            cur = child_to_parent[cur]
+        return cur
+
+    loan_id, user_id, merchant, amount = loan
+    ultimate_parent = find_root(merchant)
+
+    # 存入 loans_store
+    key = (user_id, ultimate_parent, amount)
+    loans_store[key].append(loan_id)
+
+    return ultimate_parent
+
+parent_to_children = {
+    "company_a": ["company_b", "company_c"],
+    "company_d": ["company_a"]
+}
+
+loans_store = defaultdict(deque)
+
+loan1 = ("L1", "U1", "company_b", 100)
+print(ingest_loan(parent_to_children, loan1, loans_store))
+# 输出: company_d
+
+print(loans_store)
+# 输出: {('U1', 'company_d', 100): deque(['L1'])}
+
+
+from collections import deque
+
+def match_transactions(parent_to_children, txs, loans_store):
+    # 建 child -> parent
+    child_to_parent = {}
     for p, children in (parent_to_children or {}).items():
         for c in children:
-            child_to_parent[c] = p  # 若题目存在多父公司需调整为 set
+            child_to_parent[c] = p
 
-    # 2) 根查找（带简单缓存）
-    root_cache: Dict[str, str] = {}
-    def find_root(company: str) -> str:
-        if company in root_cache:
-            return root_cache[company]
+    # 找顶层母公司
+    def find_root(company):
         seen = set()
         cur = company
-        path = []
-        while True:
-            path.append(cur)
-            if cur in seen:  # 检测到环则保守返回起点
-                root = company
-                break
+        while cur in child_to_parent and cur not in seen:
             seen.add(cur)
-            parent = child_to_parent.get(cur)
-            if not parent:
-                root = cur
-                break
-            cur = parent
-        for x in path:
-            root_cache[x] = root
-        return root
+            cur = child_to_parent[cur]
+        return cur
 
-    # 3) 归档 loans
-    loans_index: Dict[Tuple[str, str, int], deque] = defaultdict(deque)
-    for loan_id, user_id, merchant, amount in loans:
-        key = (user_id, find_root(merchant), amount)
-        loans_index[key].append(loan_id)
-
-    return {
-        "child_to_parent": child_to_parent,
-        "loans": loans_index,
-    }
-
-
-def match_transactions(
-    context,
-    txs: List[Tuple[str, str, str, int]],
-) -> List[Tuple[str, Optional[str]]]:
-    """
-    Part 2:
-    输入：
-      - context: 来自 build_loans_index 的返回值
-      - txs: 列表[(tx_id, user_id, merchant, amount)]
-    输出：
-      - 列表[(tx_id, matched_loan_id or None)]
-    匹配规则（可按题意调整）：
-      - user_id 相同
-      - 顶层母公司相同
-      - amount 相同
-      - 命中后按 FIFO 弹出对应 loan_id（避免重复匹配）
-    """
-    child_to_parent: Dict[str, str] = context.get("child_to_parent", {})
-    loans_index = context.get("loans")
-
-    # 局部 root 缓存
-    root_cache: Dict[str, str] = {}
-    def find_root(company: str) -> str:
-        if company in root_cache:
-            return root_cache[company]
-        seen = set()
-        cur = company
-        path = []
-        while True:
-            path.append(cur)
-            if cur in seen:
-                root = company
-                break
-            seen.add(cur)
-            parent = child_to_parent.get(cur)
-            if not parent:
-                root = cur
-                break
-            cur = parent
-        for x in path:
-            root_cache[x] = root
-        return root
-
-    results: List[Tuple[str, Optional[str]]] = []
+    results = []
     for tx_id, user_id, merchant, amount in txs:
         key = (user_id, find_root(merchant), amount)
-        dq = loans_index.get(key)
-        if dq and dq:
+        dq = loans_store.get(key)
+        if isinstance(dq, deque) and dq:
             results.append((tx_id, dq.popleft()))
         else:
             results.append((tx_id, None))
@@ -141,10 +108,6 @@ def match_transactions(
 
 
 
-hier = {"A": ["B", "C"], "D": ["A"]}
-loans = [("L1","U1","B",100), ("L2","U1","C",100), ("L3","U2","A",200)]
-ctx = build_loans_index(hier, loans)
-
-txs = [("T1","U1","C",100), ("T2","U1","B",100), ("T3","U2","B",200)]
-print(match_transactions(ctx, txs))
-# -> [('T1','L1'), ('T2','L2'), ('T3','L3')]
+# txs = [("T1","U1","company_c",100), ("T2","U1","company_b",100), ("T3","U2","company_b",200)]
+# match_transactions(parent_to_children, txs, loans_store)
+# -> [('T1','L1'), ('T2','L2'), ('T3','L3')]  # 若 Part 1 已存入对应 loans
