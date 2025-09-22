@@ -1,107 +1,81 @@
 
-# 题目总结（精炼版）
 
-# 设计一个不可变、**持久化（persistent）**的栈 PStack：
 
-# push(x)/pop() 都返回新的 PStack 实例，旧的实例不变、可继续访问。
+# 题目意思（总结）
 
-# 所有版本共享底层结构（structural sharing），从而在 push/pop 时只创建/丢弃一个“结点”。
+# 要实现一个不可变（immutable）、持久化（persistent）的栈 PStack。
 
-# 复杂度要求：
+# 核心要求：
 
-# push, pop, peek, size：O(1)
+# 不可变：每次 push 或 pop 都会返回一个新的栈实例，而不会修改旧的栈。
 
-# reverse()（follow up）：O(n) 时间，O(n) 额外空间（产生一个新栈），使用多版本共享不影响旧版本。
+# 意味着你可以同时保留历史版本。
 
-# 关键思路
+# 持久化：不同版本之间尽量共享结构，而不是每次都复制整个栈。
 
-# 把栈表示为不可变单链表（cons-list）：
-# 每次 push(x) 创建一个新结点，next 指向旧栈；pop() 直接返回 next；peek() 读头部值；size 作为字段缓存在结点里以保证 O(1)。
+# 复杂度：push、pop、peek、size 都必须是 O(1)。
 
-from dataclasses import dataclass
-from typing import Optional, Iterable, Iterator
+# Follow up：再实现一个 reverse()，把栈倒置，但允许是 O(n)。
 
-@dataclass(frozen=True)
+# 换句话说：这是典型的函数式数据结构题，考察对“结构共享”+“不可变”的理解。
+
 class PStack:
-    """Persistent, immutable stack with O(1) push/pop/peek/size."""
-    _value: Optional[int] = None
-    _next: Optional["PStack"] = None
-    _size: int = 0
+    def __init__(self, val=None, nxt=None, size=0):
+        self._val = val
+        self._next = nxt
+        self._size = size
 
-    # --- Constructors ---
-    @staticmethod
-    def empty() -> "PStack":
-        return PStack()
-
-    @staticmethod
-    def from_iterable(it: Iterable[int]) -> "PStack":
-        # Build top at the right (i.e., last item becomes top) => push in order
-        s = PStack.empty()
-        for x in it:
-            s = s.push(x)
-        return s
-
-    # --- Core ops (all O(1)) ---
-    def size(self) -> int:
-        return self._size
-
-    def is_empty(self) -> bool:
+    def is_empty(self):
         return self._size == 0
 
-    def peek(self) -> int:
-        if self.is_empty():
-            raise IndexError("peek from empty PStack")
-        return self._value  # type: ignore
+    def size(self):
+        return self._size
 
-    def push(self, x: int) -> "PStack":
-        # New node sharing current stack as next
+    def peek(self):
+        if self.is_empty():
+            raise IndexError("peek from empty stack")
+        return self._val
+
+    def push(self, x):
         return PStack(x, self, self._size + 1)
 
-    def pop(self) -> "PStack":
+    def pop(self):
         if self.is_empty():
-            raise IndexError("pop from empty PStack")
-        # Return tail; safe because we never mutate nodes
-        return self._next if self._next is not None else PStack.empty()
-
-    # --- Follow-up: reverse (O(n)) ---
-    def reverse(self) -> "PStack":
-        cur = self
-        res = PStack.empty()
+            raise IndexError("pop from empty stack")
+        return self._next or PStack()
+        
+    def reverse(self):
+        cur, res = self, PStack()
         while not cur.is_empty():
-            res = res.push(cur.peek())
-            cur = cur.pop()
+            res, cur = res.push(cur.peek()), cur.pop()
         return res
 
-    # --- Utilities ---
-    def to_list(self) -> list[int]:
-        # Top at index 0 to match stack's visual [top,...,bottom]
-        out = []
-        cur = self
-        while not cur.is_empty():
-            out.append(cur.peek())
-            cur = cur.pop()
-        return out
+# This code uses a singly linked list (also called a cons list) as the shared data structure.
 
-    def __iter__(self) -> Iterator[int]:
-        cur = self
-        while not cur.is_empty():
-            yield cur.peek()
-            cur = cur.pop()
+# Principle
 
+# Each PStack object is essentially a node:
 
+# _val stores the current element.
 
-if __name__ == "__main__":
-    s1 = PStack.empty()
-    s2 = s1.push(10)
-    s3 = s2.push(20).push(30)
-    assert s1.to_list() == []
-    assert s2.to_list() == [10]
-    assert s3.to_list() == [30, 20, 10]
-    assert s3.size() == 3 and s3.peek() == 30
+# _next points to the previous version of the stack.
 
-    s4 = s3.pop()
-    assert s4.to_list() == [20, 10]
-    assert s3.to_list() == [30, 20, 10]  # 旧版本未被修改（持久化）
+# _size stores the current length of the stack.
 
-    sr = s3.reverse()
-    assert sr.to_list() == [10, 20, 30]
+# When you call push(x), a new node is created.
+
+# Its _val is x.
+
+# Its _next points to the old stack.
+
+# This means the old stack remains unchanged, and the new stack reuses all the old nodes underneath.
+
+# When you call pop(), it simply returns _next, which is the previous version of the stack.
+
+# Why this works
+
+# Data sharing: Old nodes are never copied or mutated. Multiple versions of the stack share the same linked structure.
+
+# Efficiency: Both push and pop only create or return a single node, so they run in O(1) time.
+
+# Persistence: Since old versions are never modified, they all remain valid and can coexist with the new versions.

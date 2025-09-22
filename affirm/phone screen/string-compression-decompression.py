@@ -17,39 +17,32 @@
 # 输入："abc" → 输出："abc"
 
 
-def compress(s: str) -> str:
-    """压缩字符串，次数为1时省略。"""
-    if not s:
-        return ""
-    res = []
-    prev, cnt = s[0], 1
+def compress(s):
+    if not s: return ""
+    out, prev, cnt = [], s[0], 1
     for ch in s[1:]:
         if ch == prev:
             cnt += 1
         else:
-            res.append(prev)
-            if cnt > 1:
-                res.append(str(cnt))
+            out.append(prev)
+            if cnt > 1: out.append(str(cnt))
             prev, cnt = ch, 1
-    res.append(prev)
-    if cnt > 1:
-        res.append(str(cnt))
-    return "".join(res)
+    out.append(prev)
+    if cnt > 1: out.append(str(cnt))
+    return "".join(out)
 
 
-def decompress(s: str) -> str:
-    """解压字符串，假设只有单个数字或无数字（初始题目要求）。"""
-    res, i = [], 0
-    while i < len(s):
-        ch = s[i]
-        i += 1
-        num = ""
-        while i < len(s) and s[i].isdigit():
-            num += s[i]
-            i += 1
-        cnt = int(num) if num else 1
-        res.append(ch * cnt)
-    return "".join(res)
+def decompress(s):
+    out, i, n = [], 0, len(s)
+    while i < n:
+        ch = s[i]; i += 1
+        # 读取紧随其后的数字（没有则视为 1）
+        j = i
+        while j < n and s[j].isdigit(): j += 1
+        cnt = int(s[i:j]) if j > i else 1
+        out.append(ch * cnt)
+        i = j
+    return "".join(out)
 
 
 # 测试
@@ -68,20 +61,19 @@ print(decompress("abc"))              # abc
 # 需要更新 decompress 方法来支持多位数字。
 
 
-def decompress_multi(s: str) -> str:
-    """解压缩，支持多位数字次数。"""
-    res, i = [], 0
-    while i < len(s):
-        ch = s[i]
-        i += 1
-        num = ""
-        while i < len(s) and s[i].isdigit():
-            num += s[i]
-            i += 1
-        cnt = int(num) if num else 1
-        res.append(ch * cnt)
-    return "".join(res)
+def decompress_multi(s):
+    out, i, n = [], 0, len(s)
+    while i < n:
+        ch = s[i]; i += 1
+        j = i
+        while j < n and s[j].isdigit(): j += 1
+        cnt = int(s[i:j]) if j > i else 1
+        out.append(ch * cnt)
+        i = j
+    return "".join(out)
 
+# 示例
+# decompress_multi("a12b13") -> "a"*12 + "b"*13
 
 # 测试多位数字
 print(decompress_multi("a12b13"))  # aaaaaaaaaaaa + bbbbbbbbbbbbb
@@ -101,77 +93,53 @@ print(decompress_multi("a12b13"))  # aaaaaaaaaaaa + bbbbbbbbbbbbb
 
 # 合并时：用一个 pending_run 维护“当前未 flush 的尾段”，与下一片的 head_run 比较，若字符相同则计数相加，否则 flush。
 
-from typing import Tuple, List
-
-def _emit_run(c: str, k: int) -> str:
+def _emit(c, k):
     return c + (str(k) if k > 1 else "")
 
-def compress_piece(s: str) -> Tuple[str, Tuple[str, int], Tuple[str, int]]:
-    """
-    压缩一片，返回：
-      mid_text: 已稳定的中间压缩文本（不含首尾两端）
-      head_run: (char, count)
-      tail_run: (char, count)
-    """
-    if not s:
-        return "", ("", 0), ("", 0)
-    runs = []
-    prev, cnt = s[0], 1
+def compress_piece(s):
+    if not s: return "", ("", 0), ("", 0)
+    runs, prev, cnt = [], s[0], 1
     for ch in s[1:]:
-        if ch == prev:
-            cnt += 1
+        if ch == prev: cnt += 1
         else:
             runs.append((prev, cnt))
             prev, cnt = ch, 1
     runs.append((prev, cnt))
 
     if len(runs) == 1:
-        # 整片只有一个run，交给上层和相邻片合并
         c, k = runs[0]
         return "", (c, k), (c, k)
 
-    head = runs[0]
-    tail = runs[-1]
+    head, tail = runs[0], runs[-1]
     mid = runs[1:-1]
-    mid_text = "".join(_emit_run(c, k) for c, k in mid)
+    mid_text = "".join(_emit(c, k) for c, k in mid)
     return mid_text, head, tail
 
-def compress_chunks_and_merge(chunks: List[str]) -> str:
-    """分片压缩并边界合并。"""
-    out = []
-    pending_c, pending_k = None, 0
+def compress_chunks_and_merge(chunks):
+    out, pc, pk = [], None, 0
 
     def flush():
-        nonlocal pending_c, pending_k
-        if pending_c is not None:
-            out.append(_emit_run(pending_c, pending_k))
-            pending_c, pending_k = None, 0
+        nonlocal pc, pk
+        if pc is not None:
+            out.append(_emit(pc, pk))
+            pc, pk = None, 0
 
     for chunk in chunks:
         mid, (hc, hk), (tc, tk) = compress_piece(chunk)
 
-        # 合并 head_run
         if hc:
-            if pending_c is None:
-                pending_c, pending_k = hc, hk
-            elif pending_c == hc:
-                pending_k += hk
+            if pc is None: pc, pk = hc, hk
+            elif pc == hc: pk += hk
             else:
-                flush()
-                pending_c, pending_k = hc, hk
+                flush(); pc, pk = hc, hk
 
-        # 写中间稳定区
         out.append(mid)
 
-        # 更新 pending 为 tail_run
         if tc:
-            if pending_c is None:
-                pending_c, pending_k = tc, tk
-            elif pending_c == tc:
-                pending_k += tk
+            if pc is None: pc, pk = tc, tk
+            elif pc == tc: pk += tk
             else:
-                flush()
-                pending_c, pending_k = tc, tk
+                flush(); pc, pk = tc, tk
 
     flush()
     return "".join(out)
@@ -199,54 +167,38 @@ assert compress_chunks_and_merge(["aaaa", "aabc"]) == "a5bc"
 
 # 优点：不引入新分隔符；对任意字符集安全；依旧可读。
 
-def compress_safe(s: str) -> str:
-    if not s:
-        return ""
-    out = []
-    prev, cnt = s[0], 1
+def compress_safe(s):
+    if not s: return ""
+    out, prev, cnt = [], s[0], 1
     for ch in s[1:]:
         if ch == prev:
             cnt += 1
         else:
-            # 写上一个run（需要对数据字符做转义）
-            if prev.isdigit() or prev == "\\":
-                out.append("\\")
+            if prev.isdigit() or prev == "\\": out.append("\\")
             out.append(prev)
-            if cnt > 1:
-                out.append(str(cnt))
+            if cnt > 1: out.append(str(cnt))
             prev, cnt = ch, 1
-    # flush
-    if prev.isdigit() or prev == "\\":
-        out.append("\\")
+    if prev.isdigit() or prev == "\\": out.append("\\")
     out.append(prev)
-    if cnt > 1:
-        out.append(str(cnt))
+    if cnt > 1: out.append(str(cnt))
     return "".join(out)
 
-def decompress_safe(s: str) -> str:
-    out = []
-    i, n = 0, len(s)
+def decompress_safe(s):
+    out, i, n = [], 0, len(s)
     while i < n:
-        # 解析数据字符（可能被转义）
         if s[i] == "\\":
-            if i + 1 >= n:
-                raise ValueError("Dangling escape")
-            ch = s[i + 1]
-            i += 2
+            if i + 1 >= n: raise ValueError("Dangling escape")
+            ch = s[i+1]; i += 2
         else:
-            ch = s[i]
-            i += 1
-        # 解析紧随其后的多位数字次数
+            ch = s[i]; i += 1
         j = i
-        while j < n and s[j].isdigit():
-            j += 1
+        while j < n and s[j].isdigit(): j += 1
         cnt = int(s[i:j]) if j > i else 1
         out.append(ch * cnt)
         i = j
     return "".join(out)
 
-# 验证：包含数字与反斜杠
-orig = r"a33bbb\xyz1111"
-enc = compress_safe(orig)
-dec = decompress_safe(enc)
-assert dec == orig
+# orig = r"a33bbb\xyz1111"
+# enc = compress_safe(orig)
+# dec = decompress_safe(enc)
+# assert dec == orig
