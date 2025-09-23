@@ -1,89 +1,129 @@
-# 题目要求（总结）
+# Part 1 – 计算最终余额
 
-# 背景：有多方账户（客户、Affirm、商家、三方机构等）之间发生资金流转。
-# Part 1：给定「起始余额字典」与「待入账交易列表」（每笔交易是 [from, to, amount]），计算交易全部执行后的账户期末余额。
-# Part 2：给定一个「不平（有正有负）的期末余额字典」，用最少笔的转账，把所有账户的余额结清到 0，返回结清用到的转账列表以及结清后的余额字典。
+# 给定初始账户余额（每个参与方的初始金额）和一系列交易。
 
+# 每笔交易是 [from, to, amount]，表示 from 向 to 转账 amount。
 
-# Part 1：期末余额（End of day balance）
+# 需要更新所有参与方的余额，并返回 按名字字母序排序后的余额列表。
 
-# 要点：
+# Python 解法（Part 1）
 
-# 遍历每笔 [u, v, amt]：u 扣、v 加。
+# 思路：
 
-# 允许字典中未出现的主体自动视为 0（更健壮）。
+# 用字典存储初始余额。
 
-# 返回新字典，不修改输入（更安全）。
+# 遍历交易，更新 from 和 to 的余额。
+
+# 按参与方名字排序，返回余额列表。
 
 
 from collections import defaultdict
 
-def get_end_of_day_balance(transactions, start_balances):
-    bal = defaultdict(int, start_balances)  # 未出现主体默认为 0
-    for u, v, amt in transactions:
-        bal[u] -= amt
-        bal[v] += amt
-    return dict(bal)
+def end_of_day_balance(transactions, initialBalance):
+    # 初始化余额字典
+    bal = defaultdict(int)
+    for name, amt in initialBalance:
+        bal[name] = int(amt)
+    
+    # 执行交易
+    for src, dst, amt in transactions:
+        amt = int(amt)
+        bal[src] -= amt
+        bal[dst] += amt
+    
+    # 返回按名字排序的余额
+    return [bal[name] for name in sorted(bal.keys())]
 
 
-# 复杂度：时间 O(T)，空间 O(P)（P 为出现过的主体数）。
+# 示例测试
+transactions = [["Alice","Bob","50"],["Bob","Charlie","30"],
+                ["Charlie","Alice","20"],["Alice","David","70"]]
+initialBalance = [["Alice","100"],["Bob","50"],["Charlie","75"],["David","25"]]
+
+print(end_of_day_balance(transactions, initialBalance))  # [0, 70, 85, 95]
 
 
-# Part 2：用最少交易数结清到 0
+# 时间复杂度：
 
-# 经典“最小现金流”问题（Min Cash Flow）：
-# 思路是把正余额当作债权人、负余额当作债务人，不断让最大债务人向最大债权人转钱，每次至少消掉一方，从而保证交易笔数最少（≤ 正/负非零账户数 - 1）。
+# 构建字典 O(N)，N 是初始账户数。
 
-# 实现细节：
+# 处理交易 O(T)，T 是交易数。
 
-# 过滤掉本来就是 0 的账户；
+# 最后排序 O(N log N)。
+# 总体复杂度：O(N log N + T)。
 
-# 用最大堆分别维护债权人（正）和债务人（负的绝对值）；
+# 空间复杂度：
 
-# 每次弹出各自最大值，转 min(债务, 债权)，把剩余再压回堆；
-
-# 最终生成的转账列表即为结清方案；余额全为 0。
+# 一个余额字典 O(N)。
 
 
-import heapq
+# Part 2 – 最少交易结清债务（Follow-up）
 
-def settle_balances(balances):
-    # 构建最大堆：Python 是最小堆，用负号实现最大堆
-    cred = []  # ( -amount, account )  for amount>0
-    debt = []  # ( -amount, account )  for amount>0 (表示欠款的绝对值)
+# 根据交易后的净余额，有的人是负数（欠钱），有人是正数（有钱要收）。
 
-    for acc, val in balances.items():
-        if val > 0:
-            heapq.heappush(cred, (-val, acc))
-        elif val < 0:
-            heapq.heappush(debt, (-(-val), acc))  # 等价于 push( val, acc ) 但用正绝对值再取负
-            # 也可写：heapq.heappush(debt, (val, acc)) 然后取用时再转绝对值
-            # 为统一，这里把两堆都存成 (-正值, acc)
+# 要用最少的交易次数让所有人的余额回到 0。
 
-    tx = []
-    while cred and debt:
-        c_amt, c_acc = heapq.heappop(cred)
-        d_amt, d_acc = heapq.heappop(debt)
-        c_amt = -c_amt  # 还原为正数
-        d_amt = -d_amt
+# 保证总和为 0，一定有解。
 
-        pay = min(c_amt, d_amt)
-        # d_acc -> c_acc 转 pay
-        tx.append([d_acc, c_acc, pay])
+# 这是一个 最小化交易数的债务结算问题，和 LeetCode 465（Optimal Account Balancing）类似。
 
-        c_left = c_amt - pay
-        d_left = d_amt - pay
-        if c_left > 0:
-            heapq.heappush(cred, (-c_left, c_acc))
-        if d_left > 0:
-            heapq.heappush(debt, (-d_left, d_acc))
+# 将每个人的净额抽成一个数组 debts：正数=应收，负数=应付，0 过滤掉。
 
-    # 结清后的余额（若总和本就为 0，会全部清零；否则会有残余）
-    settled = {k: 0 for k in balances}
-    return tx, settled
+# 用 DFS 从左到右依次把第一个非 0 的人 i 与后面符号相反的人 j 结算一笔，递归求最少交易数。
 
-# 复杂度：设正负非零账户数为 K，
+# 剪枝：
 
-# 时间 O(K log K)（每次堆操作 log K，一共 ≤ K−1 次转账）；
+# 若某次配对后 j 恰好归零，直接 break（最优形态，不必再试其他 j）。
 
-# 空间 O(K)。
+# 用 seen 集合避免在同一层对相同金额重复尝试（去重）。
+
+def min_transactions(balanceToSet):
+    # 聚合每个人净额（字符串金额转 int）
+    bal = {}
+    for name, amt in balanceToSet:
+        bal[name] = bal.get(name, 0) + int(amt)
+
+    # 只保留非零净额
+    debts = [v for v in bal.values() if v != 0]
+
+    def dfs(i):
+        # 跳过已清零的位置
+        while i < len(debts) and debts[i] == 0:
+            i += 1
+        if i == len(debts):
+            return 0
+
+        ans = float('inf')
+        seen = set()
+        for j in range(i + 1, len(debts)):
+            # 只和符号相反的人结算；同层相同金额不重复试
+            if debts[i] * debts[j] < 0 and debts[j] not in seen:
+                seen.add(debts[j])
+                original = debts[j]
+                debts[j] += debts[i]   # 让 j 吸收 i 的净额（等价于 i 与 j 交易一笔）
+                ans = min(ans, 1 + dfs(i + 1))
+                debts[j] = original
+
+                # 完美抵消，进一步尝试没有更优意义，直接剪枝
+                if original + debts[i] == 0:
+                    break
+        return 0 if ans == float('inf') else ans
+
+    return dfs(0)
+
+
+print(min_transactions([["Alice","-100"],["Bob","70"],["Charlie","65"],["David","-35"]]))  # 3
+print(min_transactions([["Alice","-100"],["Bob","200"],["Charlie","-50"],["David","150"],["Eve","-150"],["Frank","100"],["George","50"],["Hank","-100"],["Ivy","0"],["Jack","-100"]]))  # 5
+print(min_transactions([["Alice","-250"],["Bob","50"],["Charlie","-50"],["David","100"],["Eve","150"]]))  # 3
+
+
+
+# 复杂度分析（简单版）
+
+# 时间复杂度：
+# 令 M = 参与结算的人数（净额不为 0 的人数）。
+# 在最坏情况下，算法需要尝试多种配对方式，复杂度接近 O(M!)（阶乘级）。
+# 但由于我们用了 剪枝（比如遇到完全抵消就直接停止，避免重复金额尝试），所以实际运行会比最坏情况快很多。
+
+# 空间复杂度：
+# 主要用到一个长度为 M 的数组来保存每个人的净额，递归调用深度最多也是 M，所以是 O(M)。

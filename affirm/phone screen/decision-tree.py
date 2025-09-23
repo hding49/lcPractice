@@ -12,86 +12,51 @@
 
 
 class Node:
-    # 叶子：value 不为 None；内部节点：保存 signal/const/left/right
     def __init__(self, value=None, signal=None, const=None, left=None, right=None):
-        self.value = value
-        self.signal = signal
-        self.const = const
-        self.left = left
-        self.right = right
-
-    def is_leaf(self):
-        return self.signal is None  # 没有分裂条件 => 叶子
+        self.value, self.signal, self.const = value, signal, const
+        self.left, self.right = left, right
+    def is_leaf(self): return self.signal is None
 
 
 class DecisionTree:
     def __init__(self, default_value=None):
-        # 初始是一片叶子（可先设置默认返回值，也可后面再 set_leaf_value）
         self.root = Node(value=default_value)
 
-    # —— 增量建树 API ——
-    def add_split(self, leaf, signal_name, constant):
-        """在给定叶子处添加分裂；返回(左叶子, 右叶子)句柄，便于后续继续生长。"""
-        if not leaf.is_leaf():
-            raise ValueError("add_split target must be a leaf")
-        # 将当前叶子转为内部节点，并在其下创建两个新叶子
-        leaf.signal = signal_name
-        leaf.const = constant
-        leaf.left = Node()   # 新叶子（尚未设置返回值）
-        leaf.right = Node()  # 新叶子（尚未设置返回值）
-        leaf.value = None    # 不再是叶子了
+    def add_split(self, leaf, signal, const):
+        if not leaf.is_leaf(): raise ValueError("target must be a leaf")
+        leaf.signal, leaf.const = signal, const
+        leaf.left, leaf.right = Node(), Node()
+        leaf.value = None
         return leaf.left, leaf.right
 
     def set_leaf_value(self, leaf, value):
-        if not leaf.is_leaf():
-            raise ValueError("set_leaf_value target must be a leaf")
+        if not leaf.is_leaf(): raise ValueError("target must be a leaf")
         leaf.value = value
 
     def evaluate(self, signals):
-        """signals: dict，如 {'X1': 2, 'X2': 1, 'X3': 11}"""
-        cur = self.root
-        while not cur.is_leaf():
-            if cur.signal not in signals:
-                raise KeyError(f"missing signal: {cur.signal}")
-            v = signals[cur.signal]
-            # 题意：v < const 走左，否则（>=）走右
-            if v < cur.const:
-                cur = cur.left
-            else:
-                cur = cur.right
-        return cur.value
+        n = self.root
+        while not n.is_leaf():
+            v = signals.get(n.signal)
+            if v is None: raise KeyError(f"missing signal: {n.signal}")
+            n = n.left if v < n.const else n.right
+        return n.value
 
-    # —— Follow-up：序列化 / 反序列化 ——
+    # Follow Up —— 序列化 / 反序列化（紧凑字段名）——
     def serialize(self):
-        """转为纯 dict，可直接 json.dump 保存。"""
-        def to_dict(node):
-            if node.is_leaf():
-                return {"leaf": True, "value": node.value}
-            return {
-                "leaf": False,
-                "signal": node.signal,
-                "const": node.const,
-                "left": to_dict(node.left),
-                "right": to_dict(node.right),
+        def dump(n):
+            return {"v": n.value} if n.is_leaf() else {
+                "s": n.signal, "c": n.const, "l": dump(n.left), "r": dump(n.right)
             }
-        return to_dict(self.root)
+        return dump(self.root)
 
     @staticmethod
     def deserialize(data):
-        """从 dict 恢复为 DecisionTree（含 Node 结构），返回树对象。"""
-        def from_dict(d):
-            if d.get("leaf", False):
-                return Node(value=d.get("value"))
-            n = Node(
-                signal=d["signal"],
-                const=d["const"],
-                left=from_dict(d["left"]),
-                right=from_dict(d["right"])
-            )
-            return n
-        tree = DecisionTree()
-        tree.root = from_dict(data)
-        return tree
+        def load(d):
+            if "v" in d: return Node(value=d["v"])
+            return Node(signal=d["s"], const=d["c"], left=load(d["l"]), right=load(d["r"]))
+        t = DecisionTree()
+        t.root = load(data)
+        return t
 
 # 复杂度（批量评估时）
 

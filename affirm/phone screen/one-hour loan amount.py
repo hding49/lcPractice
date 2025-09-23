@@ -39,6 +39,10 @@ class LoanTracker:
         self._evict(t)
         return self.sum
 
+# 时间复杂度：addLoan / getLoan 平均 O(1)
+
+# 空间复杂度：O(n)，n 为最近一小时内存储的贷款记录数
+
 # 示例
 tracker = LoanTracker()
 tracker.addLoan("2:15pm", 100)
@@ -63,7 +67,6 @@ print(tracker.getLoan("4:05pm"))  # 350
 # 核心思路：用 3600 个“秒桶”做环形数组，记录该秒的累计金额；维护一个 total 表示当前窗口 (t-3600, t] 的总和。时间前进时，逐秒“滑动”窗口：弹出过期桶、清零、前移指针
 
 
-from collections import deque  # 仅示例里不用，保留无妨
 
 def parse_time(s):
     s = s.strip().lower()
@@ -71,56 +74,45 @@ def parse_time(s):
     h, m = map(int, s[:-2].split(':'))
     if ampm == 'pm' and h != 12: h += 12
     if ampm == 'am' and h == 12: h = 0
-    return (h * 60 + m) * 60  # 秒
+    return (h * 60 + m) * 60
 
 class LoanTracker:
     def __init__(self):
         self.W = 3600
-        self.bucket = [0] * self.W     # 每秒累计金额
-        self.stamp  = [-1] * self.W    # 该桶对应的“绝对秒”
+        self.bucket = [0] * self.W
+        self.stamp  = [-1] * self.W
         self.total = 0
-        self.last_t = -1               # 最近一次对齐的秒
+        self.last = -1
 
     def _advance(self, t):
-        # 第一次直接标记
-        if self.last_t == -1:
-            self.last_t = t
-            return
-        # 时间向前推进 dt 秒；逐秒弹出过期桶（最多 3600 次）
-        dt = min(max(0, t - self.last_t), self.W)
+        if self.last == -1: self.last = t; return
+        dt = t - self.last
+        if dt <= 0: return
+        if dt > self.W: dt = self.W
         for _ in range(dt):
-            self.last_t += 1
-            i = self.last_t % self.W
-            # 若该桶属于窗口外（stamp <= last_t - W），从总和里减去并清空
-            if self.stamp[i] <= self.last_t - self.W:
+            self.last += 1
+            i = self.last % self.W
+            if self.stamp[i] <= self.last - self.W:
                 self.total -= self.bucket[i]
                 self.bucket[i] = 0
                 self.stamp[i] = -1
 
-    def addLoan(self, time_str, amount):
-        t = parse_time(time_str)
+    def addLoan(self, time, amount):
+        t = parse_time(time)
         self._advance(t)
         i = t % self.W
-        # 若此桶不是当前秒的数据，先把旧值从 total 中扣掉（它已被 _advance 清理为 0 或仍在窗内为 0）
         if self.stamp[i] != t:
-            # 若 stamp[i] 仍在窗内，bucket[i] 理论应为 0；稳妥起见再减一次 0 无影响
-            self.total -= self.bucket[i]
+            self.total -= self.bucket[i]   # 旧值若仍在窗内需扣除；若已过期则为0
             self.bucket[i] = 0
             self.stamp[i] = t
         self.bucket[i] += amount
         self.total += amount
 
-    def getLoan(self, time_str):
-        t = parse_time(time_str)
+    def getLoan(self, time):
+        t = parse_time(time)
         self._advance(t)
         return self.total
 
-# 示例
-tracker = LoanTracker()
-tracker.addLoan("2:15pm", 100)
-print(tracker.getLoan("2:30pm"))  # 100
-tracker.addLoan("3:05pm", 150)
-print(tracker.getLoan("3:05pm"))  # 250
-print(tracker.getLoan("3:45pm"))  # 150
-tracker.addLoan("4:05pm", 200)
-print(tracker.getLoan("4:05pm"))  # 350
+# 时间复杂度：addLoan / getLoan 均为 O(1)（时间跳跃时最多清理 3600 个桶，上界常数）。
+
+# 空间复杂度是 O(3600)，即 O(1)。

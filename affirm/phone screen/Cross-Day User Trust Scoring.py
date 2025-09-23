@@ -22,146 +22,174 @@ from math import floor
 
 class PurchaseAnalyzer:
     def __init__(self, day1_logs, day2_logs):
-        # 每个用户聚合两天历史：出现天数掩码、所有类型、金额min/max
-        # day_mask: 第0天=1, 第1天=2, 两天都出现=3
-        self.hist = {}  # userId -> {"mask": int, "types": set, "min": float, "max": float}
-        self._ingest(day1_logs, 0)
-        self._ingest(day2_logs, 1)
-
-    def _ingest(self, logs, day_idx):
-        bit = 1 if day_idx == 0 else 2
-        for date, uid, otype, amt in logs:
-            amt = float(amt)
-            if uid not in self.hist:
-                self.hist[uid] = {"mask": 0, "types": set(), "min": amt, "max": amt}
-            h = self.hist[uid]
-            h["mask"] |= bit
-            h["types"].add(otype)
-            if amt < h["min"]:
-                h["min"] = amt
-            if amt > h["max"]:
-                h["max"] = amt
+        # 只存原始日志，不做任何聚合逻辑
+        self.day1 = day1_logs
+        self.day2 = day2_logs
 
     def crossDayDiverseUsers(self):
-        res = []
-        for uid, h in self.hist.items():
-            if h["mask"] == 3 and len(h["types"]) >= 2:
-                res.append(uid)
-        res.sort()
-        return res
+        # 仅为 Part 1 现算所需信息：两天用户集合 + 两天合计的类型集合
+        day1_users, day2_users, types_map = set(), set(), {}
+        for _, uid, o, _ in self.day1:
+            day1_users.add(uid)
+            types_map.setdefault(uid, set()).add(o)
+        for _, uid, o, _ in self.day2:
+            day2_users.add(uid)
+            types_map.setdefault(uid, set()).add(o)
+        return sorted([u for u in (day1_users & day2_users) if len(types_map[u]) >= 2])
+
+#     时间复杂度
+
+# 遍历 day1 和 day2 日志：O(N1 + N2)，其中 N1,N2 分别是两天日志长度。
+
+# 集合交集 day1_users & day2_users：最坏 O(min(U1, U2))，U1/U2 为两天不同用户数。
+
+# 过滤 + 构建结果：O(U)，U 是用户总数。
+
+# 排序结果：O(K log K)，K 为符合条件的用户数（≤ U）。
+
+# 👉 总体：O(N1 + N2 + U + K log K)。
+# 通常可近似记为 O(N log U) （因为 K ≤ U，日志规模远大于用户数）。 N 指的是 日志总条数
+
+# 空间复杂度
+
+# day1_users、day2_users：O(U)。
+
+# types_map：O(U * T)，T 是单个用户的平均类型数。
+
+# 结果数组：O(K)。
+
+# 👉 总体：O(U * T)。
 
     def trustScore(self, uid, otype, amount):
+        # 为避免每次都重扫日志，这里“懒构建”两天历史；逻辑写在本函数体内
+        hist = {}
+        for logs in (self.day1, self.day2):
+            for _, u, o, a in logs:
+                a = float(a)
+                if u not in hist:
+                    hist[u] = {"types": set(), "min": a, "max": a}
+                h = hist[u]
+                h["types"].add(o)
+                if a < h["min"]: h["min"] = a
+                if a > h["max"]: h["max"] = a
+
         amount = float(amount)
-        # 类型分
-        type_score = 0
-        # 金额分
-        amount_score = 0
-
-        if uid in self.hist:
-            h = self.hist[uid]
+        t = a = 0
+        h = hist.get(uid)
+        if h:
             if otype in h["types"]:
-                type_score = 50
+                t = 50
             lo, hi = h["min"], h["max"]
-            # 金额分
             if lo <= amount <= hi:
-                amount_score = 50
+                a = 50
             else:
-                # 距离最近边界的超出比例（基于边界值）
                 bound = hi if amount > hi else lo
-                # 题目保证金额 > 0，因此 bound > 0
-                over = abs(amount - bound) / bound  # 比如 0.257 -> 25.7%
-                steps = floor((over * 100) / 10)    # 每满10%扣10分
-                amount_score = max(0, 50 - 10 * steps)
-        # 无历史：两部分皆为 0
+                over = abs(amount - bound) / bound
+                steps = int((over * 100) // 10)  # 每满10%扣10分
+                a = max(0, 50 - 10 * steps)
+        return t + a
 
-        return type_score + amount_score
+# 时间复杂度
+
+# 第一次调用：需要遍历两天日志，构建历史 → O(N1 + N2)。
+
+# 后续调用：
+
+# 查询用户历史（字典查找 O(1)）。
+
+# 判断类型 + 金额 → 常数操作 O(1)。
+
+# 👉 总体：
+
+# 构建历史：O(N1 + N2)
+
+# 单次打分：O(1)
+
+# 空间复杂度
+
+# 存用户历史：hist → 每个用户一个 entry，保存一个 set(orderTypes) 和两个数。
+
+# 大小为 O(U * T)，U 是用户总数 T 是单个用户的平均类型数。
+
+# 👉 总体：O(U * T)。
+
+
 
 
 # 另外问了扩展问题，如果不是 log file，是stream of logs 怎么办。
 
-from collections import defaultdict
+from math import floor
 
 class StreamPurchaseAnalyzer:
-    # [NEW for streaming] 整体类：支持“流式两天滑动窗口”的增量维护
     def __init__(self):
-        # [NEW for streaming] 分日桶：只保留最近两天
-        self.bucket = {}        # date_str -> { uid: {"types": set, "min": float, "max": float} }
-        self.today = None       # [NEW for streaming]
-        self.yesterday = None   # [NEW for streaming]
-        # [NEW for streaming] 合并视图：回答查询（两天 union）
-        self.merged = {}        # uid -> {"types": set, "min": float, "max": float, "mask": int}  # bit: yesterday=1, today=2
+        self.bucket = {}      # date_str -> list of logs
+        self.today = None
+        self.yesterday = None
 
     def _roll_to(self, date_str):
-        # [NEW for streaming] 跨天滚动窗口：维护 today / yesterday 两个桶
         if self.today is None:
             self.today = date_str
-            self.yesterday = None
-            self.bucket[self.today] = {}
+            self.bucket[self.today] = []
             return
         if date_str == self.today:
             return
         if self.yesterday and self.yesterday in self.bucket:
-            del self.bucket[self.yesterday]  # 只保留最近两天
+            del self.bucket[self.yesterday]
         self.yesterday = self.today
         self.today = date_str
-        self.bucket[self.today] = {}
-
-    def _upd_bucket_user(self, bkt, uid, otype, amt):
-        # [NEW for streaming] 在当日桶内增量更新该用户的 types / min / max
-        u = bkt.get(uid)
-        if not u:
-            bkt[uid] = {"types": {otype}, "min": amt, "max": amt}
-        else:
-            u["types"].add(otype)
-            if amt < u["min"]: u["min"] = amt
-            if amt > u["max"]: u["max"] = amt
+        self.bucket[self.today] = []
 
     def ingest(self, date_str, uid, otype, amount):
-        # [NEW for streaming] 流式入口：每到一条日志就更新窗口与合并视图
-        amount = float(amount)
-        self._roll_to(date_str)                          # [NEW for streaming]
-        self._upd_bucket_user(self.bucket[self.today],   # [NEW for streaming]
-                              uid, otype, amount)
-        # [NEW for streaming] 仅合并该 uid 的两日视图（O(1)）
-        a = self.bucket.get(self.today, {}).get(uid)
-        b = self.bucket.get(self.yesterday, {}).get(uid)
-        types = set()
-        lo, hi = None, None
-        mask = 0
-        if b:
-            types |= b["types"]; lo = b["min"]; hi = b["max"]; mask |= 1
-        if a:
-            types |= a["types"]
-            lo = a["min"] if lo is None else min(lo, a["min"])
-            hi = a["max"] if hi is None else max(hi, a["max"])
-            mask |= 2
-        self.merged[uid] = {"types": types, "min": lo, "max": hi, "mask": mask}
+        self._roll_to(date_str)
+        self.bucket[self.today].append([date_str, uid, otype, str(amount)])
 
     def crossDayDiverseUsers(self):
-        # （沿用批处理版逻辑；但数据来自 merged）——接口保持不变，方便替换
-        res = []
-        for uid, h in self.merged.items():
-            if h["mask"] == 3 and len(h["types"]) >= 2:
-                res.append(uid)
-        res.sort()
-        return res
+        if not self.yesterday or self.yesterday not in self.bucket:
+            return []
+        day1_logs = self.bucket[self.yesterday]
+        day2_logs = self.bucket[self.today]
+
+        day1_users, day2_users, types_map = set(), set(), {}
+        for _, uid, o, _ in day1_logs:
+            day1_users.add(uid)
+            types_map.setdefault(uid, set()).add(o)
+        for _, uid, o, _ in day2_logs:
+            day2_users.add(uid)
+            types_map.setdefault(uid, set()).add(o)
+
+        return sorted([u for u in (day1_users & day2_users) if len(types_map[u]) >= 2])
 
     def trustScore(self, uid, otype, amount):
-        # （沿用批处理版逻辑；但数据来自 merged）——接口保持不变，方便替换
+        # 每次调用都重建历史
+        hist = {}
+        logs_pairs = []
+        if self.yesterday and self.yesterday in self.bucket:
+            logs_pairs.append(self.bucket[self.yesterday])
+        if self.today and self.today in self.bucket:
+            logs_pairs.append(self.bucket[self.today])
+
+        for logs in logs_pairs:
+            for _, u, o, a in logs:
+                a = float(a)
+                if u not in hist:
+                    hist[u] = {"types": set(), "min": a, "max": a}
+                h = hist[u]
+                h["types"].add(o)
+                h["min"] = min(h["min"], a)
+                h["max"] = max(h["max"], a)
+
         amount = float(amount)
-        type_score = 0
-        amount_score = 0
-        h = self.merged.get(uid)
+        t = a = 0
+        h = hist.get(uid)
         if h:
             if otype in h["types"]:
-                type_score = 50
+                t = 50
             lo, hi = h["min"], h["max"]
-            if lo is not None and hi is not None:
-                if lo <= amount <= hi:
-                    amount_score = 50
-                else:
-                    bound = hi if amount > hi else lo
-                    over = abs(amount - bound) / bound
-                    steps = int((over * 100) // 10)  # 每满10%扣10分
-                    amount_score = max(0, 50 - 10 * steps)
-        return type_score + amount_score
+            if lo <= amount <= hi:
+                a = 50
+            else:
+                bound = hi if amount > hi else lo
+                over = abs(amount - bound) / bound
+                steps = int((over * 100) // 10)
+                a = max(0, 50 - 10 * steps)
+        return t + a

@@ -93,60 +93,43 @@ print(decompress_multi("a12b13"))  # aaaaaaaaaaaa + bbbbbbbbbbbbb
 
 # 合并时：用一个 pending_run 维护“当前未 flush 的尾段”，与下一片的 head_run 比较，若字符相同则计数相加，否则 flush。
 
-def _emit(c, k):
-    return c + (str(k) if k > 1 else "")
-
-def compress_piece(s):
-    if not s: return "", ("", 0), ("", 0)
-    runs, prev, cnt = [], s[0], 1
-    for ch in s[1:]:
-        if ch == prev: cnt += 1
-        else:
-            runs.append((prev, cnt))
-            prev, cnt = ch, 1
-    runs.append((prev, cnt))
-
-    if len(runs) == 1:
-        c, k = runs[0]
-        return "", (c, k), (c, k)
-
-    head, tail = runs[0], runs[-1]
-    mid = runs[1:-1]
-    mid_text = "".join(_emit(c, k) for c, k in mid)
-    return mid_text, head, tail
-
-def compress_chunks_and_merge(chunks):
-    out, pc, pk = [], None, 0
-
-    def flush():
-        nonlocal pc, pk
-        if pc is not None:
-            out.append(_emit(pc, pk))
-            pc, pk = None, 0
-
-    for chunk in chunks:
-        mid, (hc, hk), (tc, tk) = compress_piece(chunk)
-
-        if hc:
-            if pc is None: pc, pk = hc, hk
-            elif pc == hc: pk += hk
+def compress_stream(s, chunk_size=1_000_000):
+    if not s: return ""
+    out, prev, cnt = [], None, 0
+    for i in range(0, len(s), chunk_size):
+        chunk = s[i:i+chunk_size]
+        for ch in chunk:
+            if ch == prev:
+                cnt += 1
             else:
-                flush(); pc, pk = hc, hk
-
-        out.append(mid)
-
-        if tc:
-            if pc is None: pc, pk = tc, tk
-            elif pc == tc: pk += tk
-            else:
-                flush(); pc, pk = tc, tk
-
-    flush()
+                if prev is not None:
+                    out.append(prev)
+                    if cnt > 1: out.append(str(cnt))
+                prev, cnt = ch, 1
+    # flush last run
+    out.append(prev)
+    if cnt > 1: out.append(str(cnt))
     return "".join(out)
 
-# 示例（边界合并："aaaa" | "aabc" -> "a5bc"... 实际根据连续段计数）
-assert compress_chunks_and_merge(["aaaa", "aabc"]) == "a5bc"
 
+def decompress_stream(s, chunk_size=1_000_000):
+    out, cur, num = [], None, ""
+    for i in range(0, len(s), chunk_size):
+        chunk = s[i:i+chunk_size]
+        for ch in chunk:
+            if cur is None:
+                cur, num = ch, ""
+            elif ch.isdigit():
+                num += ch              # 可能跨块的多位数字，顺着累加即可
+            else:
+                out.append(cur * (int(num) if num else 1))
+                cur, num = ch, ""
+    # flush last
+    if cur is not None:
+        out.append(cur * (int(num) if num else 1))
+    return "".join(out)
+
+# 都是 O(n) 时间，O(1) 额外内存（不算输出）
 
 # 上例解释：前片尾是 a(4)，后片头是 a(1)，合并为 a(5)；后片余下 "bc" 是单个字符段，按规则不写 1。
 
@@ -168,26 +151,27 @@ assert compress_chunks_and_merge(["aaaa", "aabc"]) == "a5bc"
 # 优点：不引入新分隔符；对任意字符集安全；依旧可读。
 
 def compress_safe(s):
-    if not s: return ""
     out, prev, cnt = [], s[0], 1
     for ch in s[1:]:
         if ch == prev:
             cnt += 1
         else:
-            if prev.isdigit() or prev == "\\": out.append("\\")
+            if prev.isdigit() or prev == "\\":
+                out.append("\\")  # 转义
             out.append(prev)
             if cnt > 1: out.append(str(cnt))
             prev, cnt = ch, 1
-    if prev.isdigit() or prev == "\\": out.append("\\")
+    if prev.isdigit() or prev == "\\":
+        out.append("\\")
     out.append(prev)
     if cnt > 1: out.append(str(cnt))
     return "".join(out)
 
+
 def decompress_safe(s):
     out, i, n = [], 0, len(s)
     while i < n:
-        if s[i] == "\\":
-            if i + 1 >= n: raise ValueError("Dangling escape")
+        if s[i] == "\\":   # 遇到转义
             ch = s[i+1]; i += 2
         else:
             ch = s[i]; i += 1
