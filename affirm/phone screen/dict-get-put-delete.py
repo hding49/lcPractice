@@ -62,7 +62,8 @@ class DictRandomByKey:
 
 # 维护 uniq_vals: 当前所有出现过的 唯一值数组。
 
-# 为保证 get_random_val() O(1)，我们在 put/delete 时把 uniq_vals 整理好。这里按要求可以让 put 退化到 O(n)：每次写入后重建 uniq_vals（或在计数变化时全量扫描一遍 cnt，都行）。
+# 为保证 get_random_val() O(1)，我们在 put/delete 时把 uniq_vals 整理好。这里按要求可以让 put 退化到 O(n)：
+# 每次写入后重建 uniq_vals（或在计数变化时全量扫描一遍 cnt，都行）。
 
 import random
 from collections import Counter
