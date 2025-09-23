@@ -37,6 +37,31 @@ class PurchaseAnalyzer:
             types_map.setdefault(uid, set()).add(o)
         return sorted([u for u in (day1_users & day2_users) if len(types_map[u]) >= 2])
 
+# follow up -- 如果两input的log里不是一定只有两天的数据 两个log里会有任意一天的数据 会把需求改成 找在任意两天的user 是一个function 不是class 而且每一个log 数组的元素是string
+
+
+    # def crossDayDiverseUsers(log1. log2):
+    #     log_users, types_map, date_map = set(), {}, {}
+
+    #     def parse (log):
+    #         parts = log.split(',')
+    #         return parts[2], parts[1], parts[0]
+
+    #     for entry in self.day1:
+    #         uuid, t, d = parse(entry)
+    #         date_map.setdefault(uid, set()).add(d)
+    #         log_users.add(uid)
+    #         types_map.setdefault(uid, set()).add(t)
+
+    #     for entry in self.day2:
+    #         uuid, t, d = parse(entry)
+    #         date_map.setdefault(uid, set()).add(d)
+    #         log_users.add(uid)
+    #         types_map.setdefault(uid, set()).add(t)
+
+    #     return [u for u in log_users if len(types_map[u]) >= 2 and len(date_map[u]) == 2]
+
+
 #     时间复杂度
 
 # 遍历 day1 和 day2 日志：O(N1 + N2)，其中 N1,N2 分别是两天日志长度。
@@ -88,6 +113,7 @@ class PurchaseAnalyzer:
                 steps = int((over * 100) // 10)  # 每满10%扣10分
                 a = max(0, 50 - 10 * steps)
         return t + a
+
 
 # 时间复杂度
 
